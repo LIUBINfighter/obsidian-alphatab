@@ -1,5 +1,5 @@
 import { Plugin, TFile } from "obsidian";
-import { GTPView, VIEW_TYPE_GTP } from "./TabView";
+import { TabView, VIEW_TYPE_TAB } from "./TabView";
 
 interface AlphaTabPluginSettings {
   // 插件设置，可以根据需要扩展
@@ -18,12 +18,12 @@ export default class AlphaTabPlugin extends Plugin {
 
     // 注册吉他谱文件扩展名的查看器
     this.registerView(
-      VIEW_TYPE_GTP,
-      (leaf) => new GTPView(leaf)
+      VIEW_TYPE_TAB,
+      (leaf) => new TabView(leaf)
     );
 
     // 注册文件扩展名处理
-    this.registerExtensions(["gp", "gp3", "gp4", "gp5", "gpx", "gp7"], VIEW_TYPE_GTP);
+    this.registerExtensions(["gp", "gp3", "gp4", "gp5", "gpx", "gp7"], VIEW_TYPE_TAB);
 
     // 添加右键菜单项用于打开吉他谱文件
     this.registerEvent(
@@ -36,7 +36,7 @@ export default class AlphaTabPlugin extends Plugin {
               .onClick(async () => {
                 const leaf = this.app.workspace.getLeaf(false);
                 await leaf.setViewState({
-                  type: VIEW_TYPE_GTP,
+                  type: VIEW_TYPE_TAB,
                   state: { file: file.path },
                 });
               });
@@ -55,7 +55,7 @@ export default class AlphaTabPlugin extends Plugin {
 
   onunload() {
     // 清理工作
-    this.app.workspace.detachLeavesOfType(VIEW_TYPE_GTP);
+    this.app.workspace.detachLeavesOfType(VIEW_TYPE_TAB);
   }
 
   async loadSettings() {

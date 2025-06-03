@@ -7,7 +7,7 @@ import {
   type RenderingResources,
 } from "@coderline/alphatab";
 
-export const VIEW_TYPE_GTP = "gtp-view";
+export const VIEW_TYPE_TAB = "tab-view";
 
 export class TracksModal extends Modal {
   tracks: AlphaTabApi["tracks"];
@@ -65,7 +65,7 @@ export class TracksModal extends Modal {
   }
 }
 
-export class GTPView extends FileView {
+export class TabView extends FileView {
   score: model.Score;
   alphaTabSettings: Settings;
   renderTracks: AlphaTabApi["tracks"];
@@ -87,7 +87,7 @@ export class GTPView extends FileView {
   }
 
   getViewType(): string {
-    return VIEW_TYPE_GTP;
+    return VIEW_TYPE_TAB;
   }
 
   getDisplayText() {
@@ -97,7 +97,7 @@ export class GTPView extends FileView {
     return super.getDisplayText();
   }
 
-  parseGTPContent() {
+  parseTabContent() {
     this.darkMode = document.body?.className?.includes?.("theme-dark");
     this.renderWidth = Math.min(this.contentEl.clientWidth || 800, 800);
     
@@ -191,8 +191,8 @@ export class GTPView extends FileView {
     return svgChunks.map((c) => c.svg).join("\n");
   }
 
-  renderGTP() {
-    const content = this.parseGTPContent();
+  renderTab() {
+    const content = this.parseTabContent();
 
     // clean content
     this.contentEl.empty();
@@ -209,7 +209,7 @@ export class GTPView extends FileView {
   async onLoadFile(file: TFile) {
     // 0.loading
     this.contentEl.createEl("div", {
-      text: "Loading GTP...",
+      text: "Loading TAB...",
       cls: "at at-container-loading",
     });
 
@@ -225,9 +225,9 @@ export class GTPView extends FileView {
     this.tracksModal.setTracks(this.score.tracks);
     this.tracksModal.setRenderTracks([this.score.tracks[0]]);
 
-    // 3.render gtp, delay 0ms for get this.contentEl.clientWidth
+    // 3.render tab, delay 0ms for get this.contentEl.clientWidth
     setTimeout(async () => {
-      this.renderGTP();
+      this.renderTab();
     }, 0);
   }
 
@@ -240,7 +240,7 @@ export class GTPView extends FileView {
     super.onResize();
     const resizeWidth = this.contentEl.clientWidth;
     if (resizeWidth && resizeWidth !== this.renderWidth) {
-      this.renderGTP();
+      this.renderTab();
     }
   }
 
