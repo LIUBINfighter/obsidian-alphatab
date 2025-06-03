@@ -103,15 +103,7 @@ export class TabView extends FileView {
     this.renderWidth = Math.min(this.contentEl.clientWidth || 800, 800);
     
     // 1. Setup settings
-    this.alphaTabSettings = new alphaTab.Settings();
-    this.alphaTabSettings.display.scale = 0.8;
-    this.alphaTabSettings.core.engine = "svg";
-    this.alphaTabSettings.core.enableLazyLoading = true;
-    this.alphaTabSettings.core.useWorkers = true;
-    
-    // 设置播放器
     const playerSettings = {
-      ...this.alphaTabSettings.player,
       enablePlayer: true,
       enableCursor: true,
       enableUserInteraction: true,
