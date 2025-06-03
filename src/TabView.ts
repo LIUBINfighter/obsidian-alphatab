@@ -1,3 +1,4 @@
+// TabView.ts
 import { App, FileView, Modal, Setting, TFile, WorkspaceLeaf } from "obsidian";
 import * as alphaTab from "@coderline/alphatab";
 import {

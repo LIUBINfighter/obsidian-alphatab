@@ -1,3 +1,4 @@
+// main.ts
 import { Plugin, TFile } from "obsidian";
 import { TabView, VIEW_TYPE_TAB } from "./TabView";
 
