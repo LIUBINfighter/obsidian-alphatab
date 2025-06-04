@@ -19,10 +19,9 @@ import {
 	type PlayerStateChangedEventArgs,
 	type Score,
 	type Track,
-	// FontFileFormat, // 添加FontFileFormat导入
 	LayoutMode,
 	ScrollMode,
-	// PlayerState // 导入PlayerState枚举
+	synth // 添加synth命名空间导入
 } from "@coderline/alphatab"; // Or your specific import path for alphaTab
 
 export const VIEW_TYPE_TAB = "tab-view";
@@ -336,16 +335,9 @@ export class TabView extends FileView {
 		};
 		console.log("[AlphaTab Debug] Theme colors and fonts determined.");
 
-		this.alphaTabSettings = new alphaTab.Settings(); // Use the aliased import if that's your setup
-		// console.log(
-		// 	"[AlphaTab Debug] Initial new alphaTab.Settings() object:",
-		// 	JSON.stringify(this.alphaTabSettings)
-		// );
-		// 太长不看
-
-		this.alphaTabSettings.core.engine = "svg"; // SVG is generally more reliable for web plugins
-		this.alphaTabSettings.core.enableLazyLoading = true; // Good for performance
-		// this.alphaTabSettings.core.logLevel = 'debug'; // Enable AlphaTab's internal debug logging if needed
+		this.alphaTabSettings = new alphaTab.Settings();
+		this.alphaTabSettings.core.engine = "svg";
+		this.alphaTabSettings.core.enableLazyLoading = true;
 
 		const pluginId = this.pluginInstance?.manifest?.id;
 		if (!pluginId) {
@@ -360,7 +352,6 @@ export class TabView extends FileView {
 			`[AlphaTab Debug] Using Plugin ID for resources: '${pluginId}'`
 		);
 
-		// Current debugging state: disable workers and player to simplify
 		this.alphaTabSettings.core.useWorkers = false;
 		this.alphaTabSettings.player.enablePlayer = false;
 		console.log(
@@ -371,17 +362,19 @@ export class TabView extends FileView {
 		);
 
 		try {
-			const fontDirectoryAssetPath = `assets/alphatab/font/`; // Ensure this path is correct relative to your plugin root
+			const fontDirectoryAssetPath = `assets/alphatab/font/`;
 			const generatedFontDir = this.getPluginAssetHttpUrl(
 				pluginId,
 				fontDirectoryAssetPath
 			);
+			
+			// 使用标准的 fontDirectory 设置
 			this.alphaTabSettings.core.fontDirectory = generatedFontDir;
 			console.log(
 				`[AlphaTab Debug] settings.core.fontDirectory set to: '${generatedFontDir}'`
 			);
 
-			const mainAlphaTabScriptAssetPath = `assets/alphatab/alphaTab.mjs`; // Ensure this path is correct
+			const mainAlphaTabScriptAssetPath = `assets/alphatab/alphaTab.mjs`;
 			const generatedScriptFile = this.getPluginAssetHttpUrl(
 				pluginId,
 				mainAlphaTabScriptAssetPath
@@ -414,185 +407,25 @@ export class TabView extends FileView {
 			themeFonts
 		);
 
-		this.alphaTabSettings.player.enableCursor = true; // Player-related, but harmless to set
-		this.alphaTabSettings.player.scrollMode = ScrollMode.Continuous; // Player-related
-		this.alphaTabSettings.player.scrollElement = this.atViewportRef; // Player-related
-		this.alphaTabSettings.player.scrollOffsetY = -30; // Player-related
+		this.alphaTabSettings.player.enableCursor = true;
+		this.alphaTabSettings.player.scrollMode = ScrollMode.Continuous;
+		this.alphaTabSettings.player.scrollElement = this.atViewportRef;
+		this.alphaTabSettings.player.scrollOffsetY = -30;
 
-		// console.log(
-		// 	"[AlphaTab Debug] Final AlphaTab settings before API initialization:",
-		// 	JSON.stringify(this.alphaTabSettings, null, 2)
-		// );
-		// 太长不看
-
-		// --- Hack Removed ---
-		// No more temporary modification of globalThis.module
-
-		// --- Hack Added ---
-		// ... (之前的代码，如 settings 初始化等) ...
-
-		// console.log(
-		// 	"[AlphaTab Debug] Final AlphaTab settings before API initialization:",
-		// 	JSON.stringify(this.alphaTabSettings, null, 2)
-		// );
-		// 太长不看版
-
-		// ... (之前的 settings 初始化, pluginId 获取等) ...
-
-		// 关键: 禁用 workers 和 player 以简化调试
-		this.alphaTabSettings.core.useWorkers = false;
-		this.alphaTabSettings.player.enablePlayer = false;
-		console.log(
-			`[AlphaTab Debug] core.useWorkers set to: ${this.alphaTabSettings.core.useWorkers}`
-		);
-		console.log(
-			`[AlphaTab Debug] player.enablePlayer set to: ${this.alphaTabSettings.player.enablePlayer}`
-		);
-
-		// --- 使用 fs 读取字体并生成 data: URL ---
-		console.log(
-			"[AlphaTab Debug] Attempting to load fonts using Node.js fs module."
-		);
-
-		// 1. 获取插件的绝对路径
-		//    this.app.vault.adapter.getBasePath() 获取 vault 的根路径
-		//    this.pluginInstance.manifest.id 是你的插件 ID (例如 'gp')
-		//    你需要根据你的插件文件结构构建正确的绝对路径
-		const vaultBasePath = this.app.vault.adapter.getBasePath();
-		// const pluginId = this.pluginInstance.manifest.id; // 假设你的插件文件夹名与 ID 一致
-
-		// 根据你提供的结构： .obsidian/plugins/alphatab/assets/fonts/Bravura.woff
-		// 如果你的插件文件夹名确实是 'obsidian-alphatab' 而不是插件ID 'gp'，请使用实际的文件夹名
-		// obsidian-alphatab/assets/alphatab/font
-		const actualPluginFolderName = "obsidian-alphatab"; // 或者 pluginId 如果它们相同
-		const pluginAssetsFontsPath = path.join(
-			vaultBasePath,
-			".obsidian",
-			"plugins",
-			actualPluginFolderName,
-			"assets",
-			"alphatab",
-			"font"
-		);
-
-
-		// 使用正确的字体元数据文件名
-		const fontJsonFileName = "bravura_metadata.json"; // 修正为正确的元数据文件名
-		const fontBinaryFileName = "Bravura.woff"; // 你提到的是 .woff 文件
-
-		const absoluteFontJsonPath = path.join(
-			pluginAssetsFontsPath,
-			fontJsonFileName
-		);
-		const absoluteFontBinaryPath = path.join(
-			pluginAssetsFontsPath,
-			fontBinaryFileName
-		);
-
-		console.log(
-			`[AlphaTab Debug] Absolute path for ${fontJsonFileName}: ${absoluteFontJsonPath}`
-		);
-		console.log(
-			`[AlphaTab Debug] Absolute path for ${fontBinaryFileName}: ${absoluteFontBinaryPath}`
-		);
-
-		let fontJsonDataString: string;
-		let fontBinaryBuffer: Buffer;
-
-		try {
-			fontJsonDataString = fs.readFileSync(absoluteFontJsonPath, "utf-8");
-			console.log(
-				`[AlphaTab Debug] Successfully read ${fontJsonFileName}`
-			);
-		} catch (err) {
-			console.error(
-				`[AlphaTab Plugin Error] Failed to read ${fontJsonFileName} using fs:`,
-				err
-			);
-			this.showErrorInOverlay(
-				`字体元数据缺失: ${fontJsonFileName}. 请检查路径和权限。`
-			);
-			return; // 关键文件缺失，无法继续
-		}
-
-		try {
-			fontBinaryBuffer = fs.readFileSync(absoluteFontBinaryPath);
-			console.log(
-				`[AlphaTab Debug] Successfully read ${fontBinaryFileName}, size: ${fontBinaryBuffer.byteLength} bytes`
-			);
-		} catch (err) {
-			console.error(
-				`[AlphaTab Plugin Error] Failed to read ${fontBinaryFileName} using fs:`,
-				err
-			);
-			this.showErrorInOverlay(
-				`字体文件缺失: ${fontBinaryFileName}. 请检查路径和权限。`
-			);
-			return; // 关键文件缺失，无法继续
-		}
-
-		// 2. 创建 data: URLs
-		const fontJsonBase64 = Buffer.from(
-			fontJsonDataString,
-			"utf-8"
-		).toString("base64");
-		const fontJsonDataUrl = `data:application/json;charset=utf-8;base64,${fontJsonBase64}`;
-
-		const fontBinaryBase64 = fontBinaryBuffer.toString("base64");
-		const fontBinaryDataUrl = `data:font/woff;base64,${fontBinaryBase64}`; // MIME type for WOFF
-
-		// 3. 设置 smuflFontSources
-		const sources = new Map<FontFileFormat, string>();
-		sources.set(FontFileFormat.Json, fontJsonDataUrl);
-		sources.set(FontFileFormat.Woff, fontBinaryDataUrl); 
-
-		this.alphaTabSettings.core.smuflFontSources = sources;
-		this.alphaTabSettings.core.fontDirectory = null; // 不再需要 fontDirectory，因为我们提供了绝对的 data: URL
-		console.log(
-			"[AlphaTab Debug] Set settings.core.smuflFontSources with data URLs."
-		);
-		// console.log('[AlphaTab Debug] fontJsonDataUrl:', fontJsonDataUrl); // 可以打印出来检查，但会很长
-		// console.log('[AlphaTab Debug] fontBinaryDataUrl:', fontBinaryDataUrl); // 可以打印出来检查，但会很长
-
-		// --- 路径设置结束 ---
-
-		// ... (之前设置 display, player 等 settings 的代码保持不变)
-		this.alphaTabSettings.display.scale = 0.8;
-		// ...
-
-		// --- 环境伪装和 API 实例化 (这部分逻辑保持不变，因为我们还是要绕过环境检查) ---
 		console.log(
 			"[AlphaTab Debug] Final AlphaTab settings before API initialization:",
 			JSON.stringify(
 				this.alphaTabSettings,
 				(key, value) => {
-					// 避免在日志中打印超长的 Base64 data URLs
-					if (key === "smuflFontSources" && value instanceof Map) {
-						return Array.from(value.entries()).reduce(
-							(obj, [mapKey, mapValue]) => {
-								// @ts-ignore
-								obj[FontFileFormat[mapKey]] =
-									mapValue.substring(0, 100) +
-									"... (truncated)"; // 只显示一部分
-								return obj;
-							},
-							{}
-						);
-					}
 					if (key === "scrollElement" && value instanceof HTMLElement)
-						return `HTMLElement <${value.tagName}>`; // 避免循环引用
+						return `HTMLElement <${value.tagName}>`;
 					return value;
 				},
 				2
 			)
 		);
 
-		// ... (之前的 环境伪装 hack: 临时移除 globalThis.process 和 globalThis.module)
-		// ... (之前的 try/catch/finally 块用于实例化 AlphaTabApi 和恢复全局变量)
-		// ... (之后的 API 状态检查和事件绑定)
-		// ... (之后的 加载 SoundFont 和乐谱数据代码)
-
-		// --- 重新引入环境伪装 ---
+		// --- 环境伪装和 API 实例化 ---
 		console.log(
 			"[AlphaTab Debug] Preparing to temporarily modify global environment for AlphaTabApi instantiation."
 		);
@@ -604,7 +437,7 @@ export class TabView extends FileView {
 		if (typeof process !== "undefined") {
 			originalProcess = globalThis.process;
 			// @ts-ignore
-			globalThis.process = undefined; // 关键：临时移除 process
+			globalThis.process = undefined;
 			modifiedGlobals = true;
 			console.log(
 				"[AlphaTab Debug] Temporarily undefined globalThis.process"
@@ -615,14 +448,13 @@ export class TabView extends FileView {
 		if (typeof module !== "undefined") {
 			originalModule = globalThis.module;
 			// @ts-ignore
-			globalThis.module = undefined; // 关键：临时移除 module
+			globalThis.module = undefined;
 			modifiedGlobals = true;
 			console.log(
 				"[AlphaTab Debug] Temporarily undefined globalThis.module"
 			);
 		}
 
-		// 再次检查环境，确认伪装是否生效
 		console.log(
 			"[AlphaTab Debug] Environment state check AFTER temporary modification:"
 		);
@@ -637,7 +469,6 @@ export class TabView extends FileView {
 			console.error(
 				"[AlphaTab Plugin Error] CRITICAL: this.atMainRef is null before API instantiation."
 			);
-			// ... (错误处理并恢复全局变量)
 			if (modifiedGlobals) {
 				if (originalProcess !== undefined)
 					globalThis.process = originalProcess;
@@ -661,7 +492,7 @@ export class TabView extends FileView {
 			this.api = new alphaTab.AlphaTabApi(
 				this.atMainRef,
 				this.alphaTabSettings
-			); // 使用你正确的 alphaTab 命名空间
+			);
 			console.log(
 				"[AlphaTab Debug] alphaTab.AlphaTabApi instantiated (or did not throw immediately)."
 			);
@@ -679,9 +510,7 @@ export class TabView extends FileView {
 			this.showErrorInOverlay(
 				`Failed to initialize AlphaTab (modified env): ${e.name} - ${e.message}`
 			);
-			// 注意：这里不需要 return，因为 finally 块会执行恢复操作
 		} finally {
-			// --- 恢复全局变量 ---
 			if (modifiedGlobals) {
 				if (originalProcess !== undefined) {
 					// @ts-ignore
@@ -694,7 +523,6 @@ export class TabView extends FileView {
 					console.log("[AlphaTab Debug] Restored globalThis.module");
 				}
 				console.log("[AlphaTab Debug] Global environment restored.");
-				// 再次检查恢复后的环境
 				console.log(
 					`[AlphaTab Debug] typeof process (after restore): ${typeof process}`
 				);
@@ -705,7 +533,6 @@ export class TabView extends FileView {
 		}
 
 		// --- 后续 API 状态检查和事件绑定 ---
-		// (这部分代码与你之前版本中，API 实例化成功后的检查逻辑相同)
 		console.log(
 			"[AlphaTab Debug] Post-instantiation API object check (after potential env modification and restore):"
 		);
@@ -723,120 +550,7 @@ export class TabView extends FileView {
 		console.log(
 			`[AlphaTab Debug] typeof this.api.error: ${typeof this.api.error}`
 		);
-		// ... (继续检查 this.api.error.on 和其他事件发射器) ...
-
-		// ... (事件绑定代码) ...
-
-		// ... (加载 SoundFont 和乐谱数据代码) ...
-
-		// Log environment state just before AlphaTabApi instantiation
-		console.log(
-			"[AlphaTab Debug] Environment state check before AlphaTabApi instantiation:"
-		);
-		console.log(
-			`[AlphaTab Debug] typeof window: ${typeof window}, window exists: ${
-				typeof window !== "undefined"
-			}`
-		);
-		console.log(
-			`[AlphaTab Debug] typeof document: ${typeof document}, document exists: ${
-				typeof document !== "undefined"
-			}`
-		);
-		console.log(`[AlphaTab Debug] typeof process: ${typeof process}`);
-		if (typeof process !== "undefined") {
-			console.log(
-				"[AlphaTab Debug] process.versions:",
-				JSON.stringify(process.versions)
-			);
-			console.log("[AlphaTab Debug] process.type:", process.type); // 'renderer' in Electron render process
-		}
-		console.log(`[AlphaTab Debug] typeof module: ${typeof module}`);
-		if (
-			typeof module !== "undefined" &&
-			module &&
-			typeof module === "object"
-		) {
-			// Be careful logging 'module' directly, it can be large or circular. Log specific properties if needed.
-			console.log(
-				`[AlphaTab Debug] module object exists. module.exports type: ${typeof module.exports}, module.id: ${
-					module.id
-				}`
-			);
-		}
-
-		if (!this.atMainRef) {
-			console.error(
-				"[AlphaTab Plugin Error] CRITICAL: this.atMainRef (DOM element for AlphaTab) is null or undefined before API instantiation. AlphaTab will fail."
-			);
-			this.showErrorInOverlay(
-				"AlphaTab Setup Error: Target DOM element missing."
-			);
-			return;
-		}
-		console.log(
-			"[AlphaTab Debug] this.atMainRef (DOM element for AlphaTab):",
-			this.atMainRef
-		);
-
-		console.log(
-			"[AlphaTab Debug] Attempting to instantiate alphaTab.AlphaTabApi..."
-		);
-		try {
-			this.api = new alphaTab.AlphaTabApi(
-				this.atMainRef,
-				this.alphaTabSettings
-			); // Use aliased import
-			console.log(
-				"[AlphaTab Debug] alphaTab.AlphaTabApi instantiated successfully (or at least did not throw immediately)."
-			);
-		} catch (e: any) {
-			console.error(
-				"[AlphaTab Plugin Error] FAILED to initialize AlphaTab API. Error Name:",
-				e.name,
-				"Message:",
-				e.message
-			);
-			console.error("[AlphaTab Plugin Error] Error Details:", e);
-			if (e.stack) {
-				console.error("[AlphaTab Plugin Error] Error Stack:", e.stack);
-			}
-			this.showErrorInOverlay(
-				`Failed to initialize AlphaTab: ${e.name} - ${e.message}`
-			);
-			return; // Stop further execution if API init fails
-		}
-
-		console.log("[AlphaTab Debug] Post-instantiation API object check:");
-		if (!this.api) {
-			console.error(
-				"[AlphaTab Plugin Error] CRITICAL: this.api is null or undefined AFTER instantiation attempt, even if no error was thrown. Cannot proceed."
-			);
-			this.showErrorInOverlay(
-				"AlphaTab Error: API failed to initialize (object is null)."
-			);
-			return;
-		}
-
-		console.log("[AlphaTab Debug] this.api object:", this.api); // Could be large, log specific parts if needed
-		console.log(
-			`[AlphaTab Debug] typeof this.api.error: ${typeof this.api.error}`
-		);
-		if (this.api.error) {
-			console.log(
-				"[AlphaTab Debug] this.api.error object:",
-				this.api.error
-			);
-			console.log(
-				`[AlphaTab Debug] typeof this.api.error.on: ${typeof this.api
-					.error.on}`
-			);
-		} else {
-			console.error(
-				"[AlphaTab Plugin Error] this.api.error is undefined/null. Event listeners cannot be attached."
-			);
-		}
-
+		
 		// Check other expected event emitters
 		const eventEmittersToCheck = [
 			"renderStarted",
@@ -891,7 +605,6 @@ export class TabView extends FileView {
 					"[AlphaTab Debug] Cannot attach 'renderStarted' event listener."
 				);
 			}
-			// ... (similarly for other event listeners)
 			if (
 				this.api &&
 				this.api.renderFinished &&
@@ -986,7 +699,7 @@ export class TabView extends FileView {
 				"[AlphaTab Debug] Attempting to load SoundFont as player is enabled."
 			);
 			try {
-				const soundFontAssetPath = `assets/alphatab/soundfont/sonivox.sf2`; // Ensure this path is correct
+				const soundFontAssetPath = `assets/alphatab/soundfont/sonivox.sf2`;
 				const soundFontVaultPath = normalizePath(
 					`${this.pluginInstance.manifest.dir}/${soundFontAssetPath}`
 				);
@@ -1001,7 +714,7 @@ export class TabView extends FileView {
 					console.log(
 						`[AlphaTab Debug] SoundFont data loaded from vault, size: ${soundFontData.byteLength} bytes. Calling api.loadSoundFont().`
 					);
-					await this.api.loadSoundFont(soundFontData); // Assuming this.api is valid here
+					await this.api.loadSoundFont(soundFontData);
 					console.log("[AlphaTab Debug] api.loadSoundFont() called.");
 				} else {
 					console.error(
@@ -1038,8 +751,8 @@ export class TabView extends FileView {
 				`[AlphaTab Debug] Score data read from vault, size: ${scoreData.byteLength} bytes. Calling api.load().`
 			);
 			if (!this.api)
-				throw new Error("API not initialized before loading score."); // Should not happen if checks above are good
-			await this.api.load(new Uint8Array(scoreData)); // AlphaTab expects Uint8Array or similar
+				throw new Error("API not initialized before loading score.");
+			await this.api.load(new Uint8Array(scoreData));
 			console.log("[AlphaTab Debug] api.load() called for score data.");
 		} catch (e: any) {
 			console.error(
@@ -1121,7 +834,7 @@ export class TabView extends FileView {
 	private handlePlayerStateChanged(args: PlayerStateChangedEventArgs) {
 		console.log(
 			`[AlphaTab Debug] Event: playerStateChanged - New state: ${
-				PlayerState[args.state]
+				synth.PlayerState[args.state] // 使用synth.PlayerState
 			}, isPlaying: ${args.isPlaying}`
 		);
 		if (!this.playPauseButton || !this.stopButton) {
@@ -1130,8 +843,8 @@ export class TabView extends FileView {
 			);
 			return;
 		}
-		const isPlaying = args.state === PlayerState.Playing;
-		const isPaused = args.state === PlayerState.Paused;
+		const isPlaying = args.state === synth.PlayerState.Playing; // 使用synth.PlayerState
+		const isPaused = args.state === synth.PlayerState.Paused; // 使用synth.PlayerState
 		this.playPauseButton.setText(isPlaying ? "暂停" : "播放"); // 中文化按钮文本
 		this.stopButton.disabled = !(isPlaying || isPaused);
 	}
