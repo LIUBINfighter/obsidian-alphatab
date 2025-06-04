@@ -252,42 +252,23 @@ export class TabView extends FileView {
 	}
 
 	private getPluginAssetHttpUrl(pluginId: string, assetPath: string): string {
-		// This function already has good logging from your previous version.
-		if (
-			this.app.vault.adapter.getPluginAssetUrl &&
-			typeof this.app.vault.adapter.getPluginAssetUrl === "function"
-		) {
-			try {
-				const url = this.app.vault.adapter.getPluginAssetUrl(
-					pluginId,
-					assetPath
-				);
-				console.log(
-					`[AlphaTab Debug] Using getPluginAssetUrl for '${assetPath}': ${url}`
-				);
-				return url;
-			} catch (e: any) {
-				console.warn(
-					`[AlphaTab Debug] getPluginAssetUrl failed for '${assetPath}', falling back to manual construction. Error:`,
-					e.message,
-					e.stack
-				);
-			}
-		} else {
-			console.warn(
-				`[AlphaTab Debug] this.app.vault.adapter.getPluginAssetUrl is not a function or not available. Falling back to manual URL construction for '${assetPath}'.`
-			);
-		}
+    const resourceServer = this.pluginInstance.getResourceServer();
+    
+    if (!resourceServer) {
+        console.error('[AlphaTab Debug] Resource server not available');
+        throw new Error('Resource server not initialized');
+    }
 
-		const normalizedAssetPath = assetPath.startsWith("/")
-			? assetPath.substring(1)
-			: assetPath;
-		const manualUrl = `app://${pluginId}/${normalizedAssetPath}`;
-		console.log(
-			`[AlphaTab Debug] Manually constructed URL for '${assetPath}': ${manualUrl}`
-		);
-		return manualUrl;
-	}
+    const baseUrl = resourceServer.getBaseUrl();
+    const normalizedAssetPath = assetPath.startsWith("/") 
+        ? assetPath.substring(1) 
+        : assetPath;
+    
+    const fullUrl = `${baseUrl}/${normalizedAssetPath}`;
+    console.log(`[AlphaTab Debug] Generated resource URL for '${assetPath}': ${fullUrl}`);
+    
+    return fullUrl;
+}
 
 	private async initializeAlphaTabAndLoadScore(file: TFile) {
 		console.log("[AlphaTab Debug] initializeAlphaTabAndLoadScore started.");
@@ -368,7 +349,6 @@ export class TabView extends FileView {
 				fontDirectoryAssetPath
 			);
 			
-			// 使用标准的 fontDirectory 设置
 			this.alphaTabSettings.core.fontDirectory = generatedFontDir;
 			console.log(
 				`[AlphaTab Debug] settings.core.fontDirectory set to: '${generatedFontDir}'`
