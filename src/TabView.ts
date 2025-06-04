@@ -218,6 +218,18 @@ export class TabView extends FileView {
 		this.atViewportRef = atContent.createDiv({ cls: "at-viewport" });
 		this.atMainRef = this.atViewportRef.createDiv({ cls: "at-main" }); // AlphaTab target
 		this.atControlsRef = this.atWrap.createDiv({ cls: "at-controls" });
+		
+		// 添加调试信息
+		console.log("[AlphaTab Debug] DOM structure created:");
+		console.log("- atWrap:", this.atWrap);
+		console.log("- atMainRef:", this.atMainRef);
+		console.log("- atMainRef dimensions:", {
+			width: this.atMainRef.clientWidth,
+			height: this.atMainRef.clientHeight,
+			offsetWidth: this.atMainRef.offsetWidth,
+			offsetHeight: this.atMainRef.offsetHeight
+		});
+		
 		this.renderControlBar(this.atControlsRef);
 
 		await this.initializeAlphaTabAndLoadScore(file);
@@ -343,40 +355,120 @@ export class TabView extends FileView {
 		);
 
 		try {
-			const fontDirectoryAssetPath = `assets/alphatab/font/`;
-			const generatedFontDir = this.getPluginAssetHttpUrl(
-				pluginId,
-				fontDirectoryAssetPath
-			);
-			
-			this.alphaTabSettings.core.fontDirectory = generatedFontDir;
-			console.log(
-				`[AlphaTab Debug] settings.core.fontDirectory set to: '${generatedFontDir}'`
-			);
-
-			const mainAlphaTabScriptAssetPath = `assets/alphatab/alphaTab.mjs`;
-			const generatedScriptFile = this.getPluginAssetHttpUrl(
-				pluginId,
-				mainAlphaTabScriptAssetPath
-			);
-			this.alphaTabSettings.core.scriptFile = generatedScriptFile;
-			console.log(
-				`[AlphaTab Debug] settings.core.scriptFile set to: '${generatedScriptFile}'`
-			);
-		} catch (e: any) {
+            // 尝试检查并配置字体目录
+            console.log("[AlphaTab Debug] Checking font availability...");
+            
+            const resourceServer = this.pluginInstance.getResourceServer();
+            if (resourceServer) {
+                // 修复：使用绝对路径构建字体目录路径
+                // 之前的错误：使用了相对路径 this.pluginInstance.manifest.dir
+                // 正确的做法：使用绝对路径
+                console.log(`[AlphaTab Debug] Plugin manifest.dir: ${this.pluginInstance.manifest.dir}`);
+                
+                // 尝试多个可能的插件目录路径
+                const possiblePluginDirs = [
+                    // 使用绝对路径
+                    path.resolve(this.pluginInstance.manifest.dir),
+                    // 硬编码的开发路径（基于之前成功的经验）
+                    path.resolve("d:\\Jay.Lab\\300 Lab\\Plugin Lab\\.obsidian\\plugins\\obsidian-alphatab"),
+                    // 当前工作目录下的相对路径
+                    path.resolve(process.cwd(), ".obsidian\\plugins\\obsidian-alphatab"),
+                ];
+                
+                let actualPluginDir = null;
+                let fontDirPath = null;
+                
+                for (const dir of possiblePluginDirs) {
+                    console.log(`[AlphaTab Debug] Trying plugin directory: ${dir}`);
+                    if (fs.existsSync(dir)) {
+                        const testFontDir = path.join(dir, 'assets', 'alphatab', 'font');
+                        console.log(`[AlphaTab Debug] Testing font directory: ${testFontDir}`);
+                        
+                        if (fs.existsSync(testFontDir)) {
+                            actualPluginDir = dir;
+                            fontDirPath = testFontDir;
+                            console.log(`[AlphaTab Debug] Found valid font directory: ${testFontDir}`);
+                            break;
+                        } else {
+                            console.log(`[AlphaTab Debug] Font directory not found in: ${testFontDir}`);
+                            // 列出该目录下的内容以便调试
+                            const assetsDir = path.join(dir, 'assets');
+                            if (fs.existsSync(assetsDir)) {
+                                const assetsContents = fs.readdirSync(assetsDir);
+                                console.log(`[AlphaTab Debug] Assets directory contents:`, assetsContents);
+                                
+                                const alphatabDir = path.join(assetsDir, 'alphatab');
+                                if (fs.existsSync(alphatabDir)) {
+                                    const alphatabContents = fs.readdirSync(alphatabDir);
+                                    console.log(`[AlphaTab Debug] AlphaTab directory contents:`, alphatabContents);
+                                }
+                            }
+                        }
+                    } else {
+                        console.log(`[AlphaTab Debug] Plugin directory does not exist: ${dir}`);
+                    }
+                }
+                
+                if (actualPluginDir && fontDirPath) {
+                    const fontFiles = fs.readdirSync(fontDirPath);
+                    console.log(`[AlphaTab Debug] Found font files:`, fontFiles);
+                    
+                    if (fontFiles.length > 0) {
+                        const fontDirectoryAssetPath = `assets/alphatab/font/`;
+                        const generatedFontDir = this.getPluginAssetHttpUrl(
+                            pluginId,
+                            fontDirectoryAssetPath
+                        );
+                        
+                        this.alphaTabSettings.core.fontDirectory = generatedFontDir;
+                        console.log(
+                            `[AlphaTab Debug] settings.core.fontDirectory set to: '${generatedFontDir}'`
+                        );
+                        
+                        // 测试字体可用性
+                        console.log("[AlphaTab Debug] Testing font accessibility...");
+                        try {
+                            // 使用实际存在的字体文件进行测试
+                            const firstFontFile = fontFiles[0];
+                            const testFontUrl = `${generatedFontDir}${firstFontFile}`;
+                            console.log(`[AlphaTab Debug] Testing font URL: ${testFontUrl}`);
+                            
+                            // 使用 fetch 测试字体是否可访问
+                            const response = await fetch(testFontUrl);
+                            console.log(`[AlphaTab Debug] Font test response status: ${response.status}`);
+                            if (response.ok) {
+                                console.log("[AlphaTab Debug] Font accessibility test passed");
+                            } else {
+                                console.warn("[AlphaTab Debug] Font accessibility test failed");
+                                // 即使测试失败，也尝试使用字体目录
+                                console.log("[AlphaTab Debug] Continuing with font directory despite test failure");
+                            }
+                        } catch (fontTestError) {
+                            console.warn("[AlphaTab Debug] Font accessibility test error:", fontTestError);
+                            // 即使测试出错，也尝试使用字体目录
+                            console.log("[AlphaTab Debug] Continuing with font directory despite test error");
+                        }
+                    } else {
+                        console.warn("[AlphaTab Debug] Font directory exists but is empty");
+                        // 不设置字体目录，使用默认字体
+                    }
+                } else {
+                    console.warn("[AlphaTab Debug] No valid font directory found, using default fonts");
+                    // 不设置字体目录，使用默认字体
+                }
+                
+                // 检查脚本文件（暂时跳过实际配置，避免脚本加载问题）
+                console.log("[AlphaTab Debug] Skipping script file configuration to avoid loading issues");
+            } else {
+                console.warn("[AlphaTab Debug] Resource server not available, using default configuration");
+            }
+        } catch (e: any) {
 			console.error(
-				"[AlphaTab Plugin Error] Critical error during resource URL construction:",
+				"[AlphaTab Plugin Error] Error during resource configuration:",
 				e.message,
 				e.stack
 			);
-			new Notice(
-				"AlphaTab Error: Could not construct essential resource paths.",
-				10000
-			);
-			this.showErrorInOverlay(
-				"AlphaTab Setup Error: Resource path construction failed critically."
-			);
-			return;
+			console.log("[AlphaTab Debug] Continuing with default configuration");
 		}
 
 		this.alphaTabSettings.display.scale = 0.8;
@@ -409,108 +501,45 @@ export class TabView extends FileView {
 		console.log(
 			"[AlphaTab Debug] Preparing to temporarily modify global environment for AlphaTabApi instantiation."
 		);
-		let originalProcess: any = undefined;
-		let originalModule: any = undefined;
-		let modifiedGlobals = false;
+		// 修正环境检测绕过 - 同时处理 process 和 module
+let originalProcess: any, originalModule: any;
+let modifiedGlobals = false;
 
-		// @ts-ignore
-		if (typeof process !== "undefined") {
-			originalProcess = globalThis.process;
-			// @ts-ignore
-			globalThis.process = undefined;
-			modifiedGlobals = true;
-			console.log(
-				"[AlphaTab Debug] Temporarily undefined globalThis.process"
-			);
-		}
-
-		// @ts-ignore
-		if (typeof module !== "undefined") {
-			originalModule = globalThis.module;
-			// @ts-ignore
-			globalThis.module = undefined;
-			modifiedGlobals = true;
-			console.log(
-				"[AlphaTab Debug] Temporarily undefined globalThis.module"
-			);
-		}
-
-		console.log(
-			"[AlphaTab Debug] Environment state check AFTER temporary modification:"
-		);
-		console.log(
-			`[AlphaTab Debug] typeof process (after mod): ${typeof process}`
-		);
-		console.log(
-			`[AlphaTab Debug] typeof module (after mod): ${typeof module}`
-		);
-
-		if (!this.atMainRef) {
-			console.error(
-				"[AlphaTab Plugin Error] CRITICAL: this.atMainRef is null before API instantiation."
-			);
-			if (modifiedGlobals) {
-				if (originalProcess !== undefined)
-					globalThis.process = originalProcess;
-				if (originalModule !== undefined)
-					globalThis.module = originalModule;
-				console.log(
-					"[AlphaTab Debug] Restored globals due to atMainRef error."
-				);
-			}
-			return;
-		}
-		console.log(
-			"[AlphaTab Debug] this.atMainRef (DOM element for AlphaTab):",
-			this.atMainRef
-		);
-
-		console.log(
-			"[AlphaTab Debug] Attempting to instantiate alphaTab.AlphaTabApi with modified environment..."
-		);
-		try {
-			this.api = new alphaTab.AlphaTabApi(
-				this.atMainRef,
-				this.alphaTabSettings
-			);
-			console.log(
-				"[AlphaTab Debug] alphaTab.AlphaTabApi instantiated (or did not throw immediately)."
-			);
-		} catch (e: any) {
-			console.error(
-				"[AlphaTab Plugin Error] FAILED to initialize AlphaTab API even with modified environment. Error Name:",
-				e.name,
-				"Message:",
-				e.message
-			);
-			console.error("[AlphaTab Plugin Error] Error Details:", e);
-			if (e.stack) {
-				console.error("[AlphaTab Plugin Error] Error Stack:", e.stack);
-			}
-			this.showErrorInOverlay(
-				`Failed to initialize AlphaTab (modified env): ${e.name} - ${e.message}`
-			);
-		} finally {
-			if (modifiedGlobals) {
-				if (originalProcess !== undefined) {
-					// @ts-ignore
-					globalThis.process = originalProcess;
-					console.log("[AlphaTab Debug] Restored globalThis.process");
-				}
-				if (originalModule !== undefined) {
-					// @ts-ignore
-					globalThis.module = originalModule;
-					console.log("[AlphaTab Debug] Restored globalThis.module");
-				}
-				console.log("[AlphaTab Debug] Global environment restored.");
-				console.log(
-					`[AlphaTab Debug] typeof process (after restore): ${typeof process}`
-				);
-				console.log(
-					`[AlphaTab Debug] typeof module (after restore): ${typeof module}`
-				);
-			}
-		}
+try {
+    // 保存原始值
+    originalProcess = globalThis.process;
+    originalModule = globalThis.module;
+    
+    // 临时移除两个对象
+    // @ts-ignore
+    globalThis.process = undefined;
+    // @ts-ignore
+    globalThis.module = undefined;
+    modifiedGlobals = true;
+    
+    // 强制设置环境平台（如果可能）
+    // @ts-ignore
+    if (alphaTab.Environment) {
+        alphaTab.Environment.webPlatform = alphaTab.WebPlatform.Browser;
+    }
+    
+    console.log("[AlphaTab Debug] Temporarily removed process and module, forcing browser platform");
+    
+    // 实例化 API
+    this.api = new alphaTab.AlphaTabApi(this.atMainRef, this.alphaTabSettings);
+    
+} catch (e) {
+    console.error("Failed to initialize AlphaTab API:", e);
+    this.showErrorInOverlay(`Failed to initialize AlphaTab: ${e.message}`);
+    return;
+} finally {
+    // 无论成功与否都要恢复
+    if (modifiedGlobals) {
+        globalThis.process = originalProcess;
+        globalThis.module = originalModule;
+        console.log("[AlphaTab Debug] Restored process and module");
+    }
+}
 
 		// --- 后续 API 状态检查和事件绑定 ---
 		console.log(
@@ -530,6 +559,31 @@ export class TabView extends FileView {
 		console.log(
 			`[AlphaTab Debug] typeof this.api.error: ${typeof this.api.error}`
 		);
+		
+		// 添加更详细的字体相关事件监听
+		// @ts-ignore
+		if (this.api.fontLoad && typeof this.api.fontLoad.on === "function") {
+			// @ts-ignore
+			this.api.fontLoad.on((e) => {
+				console.log("[AlphaTab Debug] Font loading event:", e);
+			});
+		}
+		// @ts-ignore
+		if (this.api.fontLoaded && typeof this.api.fontLoaded.on === "function") {
+			// @ts-ignore
+			this.api.fontLoaded.on(() => {
+				console.log("[AlphaTab Debug] Font loaded successfully");
+			});
+		}
+		// @ts-ignore
+		if (this.api.fontLoadFailed && typeof this.api.fontLoadFailed.on === "function") {
+			// @ts-ignore
+			this.api.fontLoadFailed.on((e) => {
+				console.error("[AlphaTab Debug] Font load failed event:", e);
+				// 尝试使用备用字体或跳过字体要求
+				console.log("[AlphaTab Debug] Attempting to continue without custom fonts...");
+			});
+		}
 		
 		// Check other expected event emitters
 		const eventEmittersToCheck = [
@@ -790,15 +844,27 @@ export class TabView extends FileView {
 
 		this.tracksModal.setTracks(score.tracks);
 		if (score.tracks?.length > 0) {
-			// Default to rendering the first track or previously selected tracks
-			// For simplicity, let's always default to the first track on new score load.
 			this.renderTracks = [score.tracks[0]];
 			this.tracksModal.setRenderTracks(this.renderTracks);
 			console.log(
 				`[AlphaTab Debug] Defaulting to render track: ${score.tracks[0].name}`
 			);
 			if (this.api) {
+				console.log("[AlphaTab Debug] Calling api.renderTracks() with selected tracks");
 				this.api.renderTracks(this.renderTracks);
+				
+				// 尝试手动触发渲染
+				setTimeout(() => {
+					console.log("[AlphaTab Debug] Manually triggering render...");
+					if (this.api) {
+						try {
+							this.api.render();
+							console.log("[AlphaTab Debug] Manual render() called");
+						} catch (e) {
+							console.error("[AlphaTab Debug] Error in manual render():", e);
+						}
+					}
+				}, 1000);
 			} else {
 				console.warn(
 					"[AlphaTab Debug] API not available to render tracks after score load."
