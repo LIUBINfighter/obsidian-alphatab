@@ -1,3 +1,14 @@
+AlphaTabApi 作为核心api，是完整的播放器组件的基础
+
+[alphatab-api](https://www.alphatab.net/docs/reference/api)
+
+但是问题是会出现初始化报错（显示这是nodejs环境）
+
+
+---
+
+以下是详细信息：
+
 原插件使用低级 API（兼容 nodejs 环境），只能用来进行简单的渲染
 
 为了使用高级 API 获得完整的播放器体验，我们使用
