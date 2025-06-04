@@ -92,68 +92,125 @@ export class ResourceServer {
             const urlPath = req.url.split('?')[0];
             // 修复：更好的路径处理
             const relativePath = urlPath.startsWith('/') ? urlPath.substring(1) : urlPath;
-            const filePath = path.join(this.pluginDir, relativePath);
+            
+            // 尝试常规路径
+            let filePath = path.join(this.pluginDir, relativePath);
 
+            // 新增：如果请求的是 alphatab 目录下的字体文件但没找到，自动去 font 子目录查找
+            const isAlphaTabFontRoot = /^assets\/alphatab\/[^/]+\.(woff2?|otf|eot|svg)$/i.test(relativePath);
+            if (isAlphaTabFontRoot && !fs.existsSync(filePath)) {
+                // 例如 /assets/alphatab/Bravura.woff => /assets/alphatab/font/Bravura.woff
+                const fontFilePath = path.join(this.pluginDir, "assets", "alphatab", "font", path.basename(relativePath));
+                if (fs.existsSync(fontFilePath)) {
+                    filePath = fontFilePath;
+                    console.log(`[AlphaTab Debug] Fallback font path: ${fontFilePath}`);
+                }
+            }
+
+            // 调试信息
             console.log(`[AlphaTab Debug] === Resource Request Debug ===`);
             console.log(`[AlphaTab Debug] Request URL: ${req.url}`);
-            console.log(`[AlphaTab Debug] URL Path: ${urlPath}`);
             console.log(`[AlphaTab Debug] Plugin Dir: ${this.pluginDir}`);
-            console.log(`[AlphaTab Debug] Relative Path: ${relativePath}`);
-            console.log(`[AlphaTab Debug] Constructed File Path: ${filePath}`);
-            console.log(`[AlphaTab Debug] Resolved File Path: ${path.resolve(filePath)}`);
+            console.log(`[AlphaTab Debug] Requested File: ${filePath}`);
             console.log(`[AlphaTab Debug] File exists: ${fs.existsSync(filePath)}`);
-
-            // 修复：正确的安全检查
-            const normalizedPluginDir = path.resolve(this.pluginDir);
-            const normalizedFilePath = path.resolve(filePath);
             
-            if (!normalizedFilePath.startsWith(normalizedPluginDir)) {
+            // 设置CORS头（所有响应都应设置）
+            const setCORSHeaders = () => {
+                res.setHeader('Access-Control-Allow-Origin', '*');
+                res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+                res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+            };
+
+            // 处理OPTIONS预检请求
+            if (req.method === 'OPTIONS') {
+                setCORSHeaders();
+                console.log(`[AlphaTab Debug] Handling OPTIONS request`);
+                res.writeHead(200);
+                res.end();
+                return;
+            }
+
+            // 如果文件不存在，尝试备用路径
+            let actualFilePath = filePath;
+            if (!fs.existsSync(filePath)) {
+                // 尝试硬编码的开发路径
+                const alternativeFilePath = path.join(hardcodedPluginDir, relativePath);
+                
+                console.log(`[AlphaTab Debug] File not found, trying alternative path: ${alternativeFilePath}`);
+                console.log(`[AlphaTab Debug] Alternative path exists: ${fs.existsSync(alternativeFilePath)}`);
+                
+                if (fs.existsSync(alternativeFilePath)) {
+                    actualFilePath = alternativeFilePath;
+                    // 只是为了这个请求临时使用正确的路径
+                    console.log(`[AlphaTab Debug] Using alternative path for this request`);
+                }
+            }
+
+            // 检查文件是否存在
+            if (!fs.existsSync(actualFilePath)) {
+                setCORSHeaders();
+                console.warn(`[AlphaTab Debug] File not found after all attempts: ${actualFilePath}`);
+                
+                // 如果是字体请求，尝试查找匹配的文件
+                if (relativePath.includes('font')) {
+                    // 增强字体文件查找
+                    const fontMatch = this.findMatchingFontFile(relativePath);
+                    if (fontMatch) {
+                        console.log(`[AlphaTab Debug] Found matching font file: ${fontMatch}`);
+                        actualFilePath = fontMatch;
+                    } else {
+                        // 对于字体文件的优雅错误处理 - 返回较友好的响应码以防止过多错误
+                        console.log(`[AlphaTab Debug] This is a font request that failed - returning empty font`);
+                        const fontFileName = path.basename(relativePath);
+                        if (fontFileName.endsWith('.woff') || fontFileName.endsWith('.woff2')) {
+                            setCORSHeaders();
+                            res.setHeader('Content-Type', fontFileName.endsWith('.woff2') ? 'font/woff2' : 'font/woff');
+                            res.writeHead(200);
+                            res.end(Buffer.from([0]));
+                            return;
+                        }
+                        this.searchForFontFiles(this.pluginDir);
+                        res.writeHead(404);
+                        res.end('Font File Not Found');
+                        return;
+                    }
+                } else {
+                    setCORSHeaders();
+                    res.writeHead(404);
+                    res.end('Not Found');
+                    return;
+                }
+            }
+
+            const normalizedFilePath = path.resolve(actualFilePath);
+            
+            // 验证安全性 - 允许两个可能的插件目录
+            const normalizedPluginDir = path.resolve(this.pluginDir);
+            
+            if (!normalizedFilePath.startsWith(normalizedPluginDir) && 
+                !normalizedFilePath.startsWith(hardcodedDir)) {
+                setCORSHeaders();
                 console.warn(`[AlphaTab Debug] Security: Blocked access outside plugin directory`);
-                console.warn(`[AlphaTab Debug] Plugin dir: ${normalizedPluginDir}`);
                 console.warn(`[AlphaTab Debug] Requested path: ${normalizedFilePath}`);
                 res.writeHead(403);
                 res.end('Forbidden');
                 return;
             }
 
-            // 检查文件是否存在
-            if (!fs.existsSync(normalizedFilePath)) {
-                console.warn(`[AlphaTab Debug] File not found: ${normalizedFilePath}`);
-                // 列出目录内容来调试
-                const dirPath = path.dirname(normalizedFilePath);
-                if (fs.existsSync(dirPath)) {
-                    const files = fs.readdirSync(dirPath);
-                    console.log(`[AlphaTab Debug] Directory contents (${dirPath}):`, files);
-                    
-                    // 特别检查是否是字体请求
-                    if (relativePath.includes('font')) {
-                        console.log(`[AlphaTab Debug] This is a font request that failed`);
-                        console.log(`[AlphaTab Debug] Searching for font directories in plugin root...`);
-                        
-                        // 递归搜索字体文件
-                        this.searchForFontFiles(normalizedPluginDir);
-                    }
-                } else {
-                    console.log(`[AlphaTab Debug] Directory does not exist: ${dirPath}`);
-                }
-                res.writeHead(404);
-                res.end('Not Found');
-                return;
-            }
-
             const stat = fs.statSync(normalizedFilePath);
             if (stat.isDirectory()) {
-                console.log(`[AlphaTab Debug] Path is directory, not file: ${filePath}`);
+                setCORSHeaders();
+                console.log(`[AlphaTab Debug] Path is directory, not file: ${normalizedFilePath}`);
                 res.writeHead(403);
                 res.end('Directory listing not allowed');
                 return;
             }
 
-            // 设置正确的Content-Type，特别是字体文件
-            let mimeType = mime.lookup(filePath) || 'application/octet-stream';
+            // 设置正确的Content-Type
+            let mimeType = mime.lookup(normalizedFilePath) || 'application/octet-stream';
             
             // 强制设置字体文件的正确 MIME 类型
-            const ext = path.extname(filePath).toLowerCase();
+            const ext = path.extname(normalizedFilePath).toLowerCase();
             switch (ext) {
                 case '.woff':
                     mimeType = 'font/woff';
@@ -170,35 +227,24 @@ export class ResourceServer {
                 case '.svg':
                     mimeType = 'image/svg+xml';
                     break;
+                case '.mjs':
+                    mimeType = 'application/javascript';
+                    break;
             }
 
-            console.log(`[AlphaTab Debug] File size: ${stat.size} bytes`);
-            console.log(`[AlphaTab Debug] MIME type: ${mimeType}`);
+            console.log(`[AlphaTab Debug] Serving file: ${normalizedFilePath} (${mimeType})`);
 
+            setCORSHeaders();
             res.setHeader('Content-Type', mimeType);
             res.setHeader('Content-Length', stat.size);
-            
-            // 设置CORS头
-            res.setHeader('Access-Control-Allow-Origin', '*');
-            res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-            res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-            // 处理OPTIONS预检请求
-            if (req.method === 'OPTIONS') {
-                console.log(`[AlphaTab Debug] Handling OPTIONS request`);
-                res.writeHead(200);
-                res.end();
-                return;
-            }
-
-            // 读取并发送文件
-            console.log(`[AlphaTab Debug] Serving file: ${filePath}`);
-            const fileStream = fs.createReadStream(filePath);
             res.writeHead(200);
+            
+            // 读取并发送文件
+            const fileStream = fs.createReadStream(normalizedFilePath);
             fileStream.pipe(res);
 
             fileStream.on('error', (err) => {
-                console.error(`[AlphaTab Debug] Error reading file ${filePath}:`, err);
+                console.error(`[AlphaTab Debug] Error reading file ${normalizedFilePath}:`, err);
                 if (!res.headersSent) {
                     res.writeHead(500);
                     res.end('Internal Server Error');
@@ -206,15 +252,19 @@ export class ResourceServer {
             });
 
             fileStream.on('end', () => {
-                console.log(`[AlphaTab Debug] Successfully served: ${filePath}`);
+                console.log(`[AlphaTab Debug] Successfully served: ${normalizedFilePath}`);
             });
 
         } catch (error) {
-            console.error('[AlphaTab Debug] Request handling error:', error);
+            // 500 错误也要加 CORS
             if (!res.headersSent) {
+                res.setHeader('Access-Control-Allow-Origin', '*');
+                res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+                res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
                 res.writeHead(500);
                 res.end('Internal Server Error');
             }
+            console.error('[AlphaTab Debug] Request handling error:', error);
         }
     }
 
@@ -300,5 +350,46 @@ export class ResourceServer {
                 }
             }
         }));
+    }
+    
+    // 添加查找匹配字体文件的方法
+    private findMatchingFontFile(requestPath: string): string | null {
+        const fontFileName = path.basename(requestPath).toLowerCase();
+        const fontName = fontFileName.split('.')[0];  // 获取文件名（不带扩展名）
+        
+        // 搜索可能的字体目录
+        const fontDirs = [
+            path.join(this.pluginDir, 'assets', 'alphatab', 'font'),
+        ];
+        
+        for (const fontDir of fontDirs) {
+            if (!fs.existsSync(fontDir)) continue;
+            
+            const files = fs.readdirSync(fontDir);
+            
+            // 1. 精确匹配
+            const exactMatch = files.find(f => f.toLowerCase() === fontFileName);
+            if (exactMatch) return path.join(fontDir, exactMatch);
+            
+            // 2. 相似扩展名匹配（如 .woff2 vs .woff）
+            const extensionVariants = files.filter(f => {
+                const baseName = path.basename(f, path.extname(f)).toLowerCase();
+                return baseName === fontName;
+            });
+            
+            if (extensionVariants.length > 0) {
+                // 优先 woff2, 其次 woff
+                const woff2Match = extensionVariants.find(f => f.endsWith('.woff2'));
+                if (woff2Match) return path.join(fontDir, woff2Match);
+                
+                const woffMatch = extensionVariants.find(f => f.endsWith('.woff'));
+                if (woffMatch) return path.join(fontDir, woffMatch);
+                
+                // 如果没有 woff/woff2，返回第一个变体
+                return path.join(fontDir, extensionVariants[0]);
+            }
+        }
+        
+        return null;
     }
 }

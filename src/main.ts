@@ -17,52 +17,36 @@ const DEFAULT_SETTINGS: AlphaTabPluginSettings = {
 export default class AlphaTabPlugin extends Plugin {
   settings: AlphaTabPluginSettings;
   private resourceServer: ResourceServer | null = null;
+  actualPluginDir: string | null = null; // 新增属性
 
   async onload() {
     await this.loadSettings();
 
-    // 调试：打印当前目录信息
-    console.log(`[AlphaTab Debug] Current working directory: ${process.cwd()}`);
-    console.log(`[AlphaTab Debug] Plugin manifest.dir: ${this.manifest.dir}`);
-    console.log(`[AlphaTab Debug] Plugin manifest.id: ${this.manifest.id}`);
+    // 获取 Obsidian 库根目录
+    const vaultRoot = (this.app.vault.adapter as any).basePath as string;
+    // 拼接插件目录绝对路径
+    const pluginDir = path.join(vaultRoot, this.manifest.dir);
 
-    // 修复：使用正确的插件目录路径
-    // 硬编码开发路径，因为 manifest.dir 可能是相对路径
-    const possiblePluginDirs = [
-      // 尝试使用绝对路径解析
-      path.resolve(this.manifest.dir),
-      // 硬编码的实际开发路径
-      "d:\\Jay.Lab\\300 Lab\\Plugin Lab\\.obsidian\\plugins\\obsidian-alphatab",
-      // 当前工作目录基础上的相对路径
-      path.resolve(process.cwd(), this.manifest.dir),
-    ];
-
-    let actualPluginDir = null;
-
-    for (const dir of possiblePluginDirs) {
-      console.log(`[AlphaTab Debug] Testing plugin directory: ${dir}`);
-      if (fs.existsSync(dir)) {
-        // 验证这是正确的插件目录（检查是否有 assets 目录）
-        const assetsDir = path.join(dir, "assets");
-        if (fs.existsSync(assetsDir)) {
-          actualPluginDir = dir;
-          console.log(`[AlphaTab Debug] Found valid plugin directory: ${dir}`);
-          const contents = fs.readdirSync(dir);
-          console.log(`[AlphaTab Debug] Plugin directory contents:`, contents);
-          break;
-        } else {
-          console.log(`[AlphaTab Debug] Directory exists but no assets folder: ${dir}`);
+    // 检查 manifest.json 是否存在且 id 匹配
+    let actualPluginDir: string | null = null;
+    const manifestPath = path.join(pluginDir, "manifest.json");
+    if (fs.existsSync(manifestPath)) {
+      try {
+        const manifestContent = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+        if (manifestContent.id === this.manifest.id) {
+          actualPluginDir = pluginDir;
         }
-      } else {
-        console.log(`[AlphaTab Debug] Directory does not exist: ${dir}`);
+      } catch {
+        // ignore
       }
     }
 
     if (!actualPluginDir) {
-      console.error(`[AlphaTab Debug] Could not find valid plugin directory`);
-      actualPluginDir = path.resolve(this.manifest.dir); // 回退到默认路径
+      console.error(`[AlphaTab Debug] Could not find valid plugin directory from vault: ${pluginDir}`);
+      throw new Error("AlphaTab 插件根目录查找失败，请检查插件安装路径。");
     }
 
+    this.actualPluginDir = actualPluginDir;
     console.log(`[AlphaTab Debug] Using plugin directory: ${actualPluginDir}`);
 
     // 启动资源服务器
@@ -80,7 +64,11 @@ export default class AlphaTabPlugin extends Plugin {
     this.registerStyles();
 
     // 注册吉他谱文件扩展名的查看器
-    this.registerView(VIEW_TYPE_TAB, (leaf) => new TabView(leaf, this));
+    this.registerView(VIEW_TYPE_TAB, (leaf) => {
+      const view = new TabView(leaf, this);
+      // TabView 内部会通过 this.pluginInstance.actualPluginDir 访问
+      return view;
+    });
 
     // 注册文件扩展名处理
     this.registerExtensions(["gp", "gp3", "gp4", "gp5", "gpx", "gp7"], VIEW_TYPE_TAB);
@@ -110,20 +98,30 @@ export default class AlphaTabPlugin extends Plugin {
   }
 
   registerStyles() {
-    // 添加CSS的简单方式
-    const css = `@import url('app://local/${this.manifest.dir}/styles.css?v=${this.manifest.version}');`;
-    const styleEl = document.createElement("style");
-    styleEl.id = "alphatab-plugin-styles"; // 添加ID以便于移除/更新
-    styleEl.innerHTML = css;
-    document.head.appendChild(styleEl);
+    // 直接读取插件目录下的 styles.css 并内联注入，避免 CSP 问题
+    try {
+      if (!this.actualPluginDir) return;
+      const cssPath = path.join(this.actualPluginDir, "styles.css");
+      if (fs.existsSync(cssPath)) {
+        const css = fs.readFileSync(cssPath, "utf8");
+        const styleEl = document.createElement("style");
+        styleEl.id = "alphatab-plugin-styles";
+        styleEl.innerHTML = css;
+        document.head.appendChild(styleEl);
 
-    // 确保在卸载时移除
-    this.register(() => {
-      const existingStyleEl = document.getElementById("alphatab-plugin-styles");
-      if (existingStyleEl) {
-        existingStyleEl.remove();
+        // 确保在卸载时移除
+        this.register(() => {
+          const existingStyleEl = document.getElementById("alphatab-plugin-styles");
+          if (existingStyleEl) {
+            existingStyleEl.remove();
+          }
+        });
+      } else {
+        console.warn("[AlphaTab Debug] styles.css not found in plugin directory.");
       }
-    });
+    } catch (e) {
+      console.error("[AlphaTab Debug] Failed to inject styles.css:", e);
+    }
   }
 
   isGuitarProFile(extension: string | undefined): boolean {
