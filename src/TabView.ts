@@ -1,4 +1,3 @@
-// TabView.ts
 import {
     App,
     FileView,
@@ -18,13 +17,13 @@ import {
     type Score,
     type Track,
     LayoutMode,
-    ScrollMode
-    // PlayerState
-} from "@coderline/alphatab";
+    ScrollMode,
+    // PlayerState // Un-commented PlayerState as it's used
+} from "@coderline/alphatab"; // Or your specific import path for alphaTab
 
 export const VIEW_TYPE_TAB = "tab-view";
 
-// TracksModal class (remains the same)
+// TracksModal class (remains the same from your provided code)
 export class TracksModal extends Modal {
     tracks: Track[];
     renderTracks: Set<Track>;
@@ -34,15 +33,16 @@ export class TracksModal extends Modal {
         super(app);
         this.tracks = tracks;
         this.onChange = onChange;
-        this.renderTracks = new Set(tracks.length > 0 ? [tracks[0]] : []);
+        this.renderTracks = new Set(tracks.length > 0 ? [tracks[0]] : []); // Default to first track selected
         this.modalEl.addClass("tracks-modal");
     }
     onOpen = () => {
         this.contentEl.empty();
+        this.titleEl.setText("Select Tracks to Display");
         this.tracks.forEach((track) => {
             new Setting(this.contentEl)
                 .setName(track.name)
-                .setDesc(track.shortName)
+                .setDesc(track.shortName || `Track ${track.index + 1}`)
                 .addToggle((toggle) => {
                     toggle
                         .setValue(this.renderTracks.has(track))
@@ -52,10 +52,24 @@ export class TracksModal extends Modal {
                             } else {
                                 this.renderTracks.delete(track);
                             }
-                            this.onSelectTrack();
+                            // No immediate re-render, selection confirmed on modal close or button
                         });
                 });
         });
+
+        new Setting(this.contentEl)
+            .addButton(button => button
+                .setButtonText("Apply")
+                .setCta()
+                .onClick(() => {
+                    this.onSelectTrack();
+                    this.close();
+                }))
+            .addButton(button => button
+                .setButtonText("Cancel")
+                .onClick(() => {
+                    this.close();
+                }));
     };
     onSelectTrack = () => {
         const selectTracks = Array.from(this.renderTracks).sort(
@@ -68,6 +82,7 @@ export class TracksModal extends Modal {
     };
     setTracks(tracks: Track[]) {
         this.tracks = tracks;
+        // Reset selection to default (e.g., first track) or persisted selection
         this.renderTracks = new Set(tracks.length > 0 ? [tracks[0]] : []);
     }
     setRenderTracks(tracks: Track[]) {
@@ -80,38 +95,44 @@ export class TabView extends FileView {
     private currentFile: TFile | null = null;
     private api: AlphaTabApi | null = null;
     private score: Score | null = null;
-    private alphaTabSettings: Settings;
+    private alphaTabSettings!: Settings; // Definite assignment assertion
     private renderTracks: Track[] = [];
     private renderWidth = 800;
     private darkMode: boolean;
     private tracksModal: TracksModal;
 
-    private atWrap: HTMLElement;
-    private atOverlayRef: HTMLElement;
-    private atOverlayContentRef: HTMLElement;
-    private atMainRef: HTMLElement;
-    private atViewportRef: HTMLElement;
-    private atControlsRef: HTMLElement;
-    private playPauseButton: HTMLButtonElement;
-    private stopButton: HTMLButtonElement;
+    private atWrap!: HTMLElement; // Definite assignment assertions for DOM elements
+    private atOverlayRef!: HTMLElement;
+    private atOverlayContentRef!: HTMLElement;
+    private atMainRef!: HTMLElement;
+    private atViewportRef!: HTMLElement;
+    private atControlsRef!: HTMLElement;
+    private playPauseButton!: HTMLButtonElement;
+    private stopButton!: HTMLButtonElement;
 
-    private pluginInstance: any;
+    private pluginInstance: any; // Consider defining a more specific type if possible
 
-    constructor(leaf: WorkspaceLeaf, plugin: any) { // Expect plugin to be passed directly
+    constructor(leaf: WorkspaceLeaf, plugin: any) {
         super(leaf);
-        this.pluginInstance = plugin; // Store the passed plugin instance
+        this.pluginInstance = plugin;
 
-        // Simplified plugin instance check in constructor
         if (!this.pluginInstance?.manifest?.id) {
-            console.error("AlphaTabPlugin: CRITICAL - Plugin instance or manifest.id is not valid in TabView constructor. Ensure 'this' (the plugin instance) is passed from main.ts.");
+            console.error("[AlphaTab Plugin Error] CRITICAL - Plugin instance or manifest.id is not valid in TabView constructor. Ensure 'this' (the plugin instance) is passed from main.ts.");
         } else {
-            console.log(`[AlphaTab Debug] TabView constructor: Initialized with plugin ID '${this.pluginInstance.manifest.id}' (this.pluginInstance.manifest.id)`);
+            console.log(`[AlphaTab Debug] TabView constructor: Initialized with plugin ID '${this.pluginInstance.manifest.id}'`);
         }
 
         this.containerEl.addClasses(["alphatab-obsidian-plugin", "gtp-preview-container"]);
         this.tracksModal = new TracksModal(this.app, [], this.onChangeTracks.bind(this));
-        this.addAction("music", "Select Tracks", () => this.tracksModal.open());
+        this.addAction("music", "Select Tracks", () => {
+            if (this.score && this.score.tracks) {
+                this.tracksModal.setTracks(this.score.tracks); // Ensure modal has current tracks
+                this.tracksModal.setRenderTracks(this.renderTracks); // Ensure modal reflects current selection
+            }
+            this.tracksModal.open();
+        });
         this.addAction("download", "Download MIDI", this.downloadMidi.bind(this));
+        this.darkMode = document.body.className.includes("theme-dark"); // Initialize darkMode
     }
 
     getViewType(): string {
@@ -126,16 +147,18 @@ export class TabView extends FileView {
     }
 
     override async onLoadFile(file: TFile): Promise<void> {
+        console.log(`[AlphaTab Debug] onLoadFile: Loading file '${file.path}'`);
         this.currentFile = file;
-        this.contentEl.empty();
+        this.contentEl.empty(); // Clear previous content
         this.darkMode = document.body.className.includes("theme-dark");
 
+        // Setup DOM structure
         this.atWrap = this.contentEl.createDiv({ cls: "at-wrap" });
         this.atOverlayRef = this.atWrap.createDiv({ cls: "at-overlay", attr: { style: "display: none;" } });
         this.atOverlayContentRef = this.atOverlayRef.createDiv({ cls: "at-overlay-content" });
         const atContent = this.atWrap.createDiv({ cls: "at-content" });
         this.atViewportRef = atContent.createDiv({ cls: "at-viewport" });
-        this.atMainRef = this.atViewportRef.createDiv({ cls: "at-main" });
+        this.atMainRef = this.atViewportRef.createDiv({ cls: "at-main" }); // AlphaTab target
         this.atControlsRef = this.atWrap.createDiv({ cls: "at-controls" });
         this.renderControlBar(this.atControlsRef);
 
@@ -144,44 +167,61 @@ export class TabView extends FileView {
 
     private renderControlBar(container: HTMLElement) {
         container.empty();
+        console.log("[AlphaTab Debug] Rendering control bar.");
         this.playPauseButton = container.createEl("button", { text: "Play" });
-        this.playPauseButton.addEventListener("click", () => this.api?.playPause());
+        this.playPauseButton.addEventListener("click", () => {
+            if (this.api) {
+                console.log("[AlphaTab Debug] Play/Pause button clicked.");
+                this.api.playPause();
+            } else {
+                console.warn("[AlphaTab Debug] Play/Pause clicked, but API not initialized.");
+            }
+        });
         this.stopButton = container.createEl("button", { text: "Stop" });
-        this.stopButton.addEventListener("click", () => this.api?.stop());
+        this.stopButton.disabled = true; // Initially disabled
+        this.stopButton.addEventListener("click", () => {
+            if (this.api) {
+                console.log("[AlphaTab Debug] Stop button clicked.");
+                this.api.stop();
+            } else {
+                console.warn("[AlphaTab Debug] Stop clicked, but API not initialized.");
+            }
+        });
     }
 
     private getPluginAssetHttpUrl(pluginId: string, assetPath: string): string {
-        // Check if getPluginAssetUrl is available and is a function
+        // This function already has good logging from your previous version.
         if (this.app.vault.adapter.getPluginAssetUrl && typeof this.app.vault.adapter.getPluginAssetUrl === 'function') {
             try {
                 const url = this.app.vault.adapter.getPluginAssetUrl(pluginId, assetPath);
                 console.log(`[AlphaTab Debug] Using getPluginAssetUrl for '${assetPath}': ${url}`);
                 return url;
-            } catch (e) {
-                console.warn(`[AlphaTab Debug] getPluginAssetUrl failed for '${assetPath}', falling back to manual construction. Error:`, e);
+            } catch (e: any) {
+                console.warn(`[AlphaTab Debug] getPluginAssetUrl failed for '${assetPath}', falling back to manual construction. Error:`, e.message, e.stack);
             }
         } else {
-            console.warn(`[AlphaTab Debug] this.app.vault.adapter.getPluginAssetUrl is not a function. Falling back to manual URL construction for '${assetPath}'.`);
+            console.warn(`[AlphaTab Debug] this.app.vault.adapter.getPluginAssetUrl is not a function or not available. Falling back to manual URL construction for '${assetPath}'.`);
         }
         
-        // Fallback: Manually construct the app:// URL
-        // Ensure assetPath doesn't start with a slash if pluginId already provides the base
         const normalizedAssetPath = assetPath.startsWith('/') ? assetPath.substring(1) : assetPath;
         const manualUrl = `app://${pluginId}/${normalizedAssetPath}`;
         console.log(`[AlphaTab Debug] Manually constructed URL for '${assetPath}': ${manualUrl}`);
         return manualUrl;
     }
 
-
     private async initializeAlphaTabAndLoadScore(file: TFile) {
+        console.log("[AlphaTab Debug] initializeAlphaTabAndLoadScore started.");
         if (this.api) {
-            try { this.api.destroy(); } catch (e) { console.error("Error destroying previous API:", e); }
+            console.log("[AlphaTab Debug] Destroying previous AlphaTab API instance.");
+            try { this.api.destroy(); } catch (e: any) { console.error("[AlphaTab Plugin Error] Error destroying previous API instance:", e.message, e.stack); }
             this.api = null;
         }
         this.score = null;
-        this.showLoadingOverlay("Initializing AlphaTab...");
-        await new Promise(resolve => setTimeout(resolve, 0));
+        this.showLoadingOverlay("Initializing AlphaTab engine...");
+        // Ensure DOM is ready for width calculation, though atMainRef might not have width yet if CSS hasn't applied.
+        await new Promise(resolve => setTimeout(resolve, 0)); 
         this.renderWidth = Math.max(this.atMainRef?.clientWidth || 800, 300);
+        console.log(`[AlphaTab Debug] Calculated renderWidth: ${this.renderWidth}`);
 
         const themeColors = this.darkMode
             ? {
@@ -194,14 +234,18 @@ export class TabView extends FileView {
                 scoreInfoColor: new model.Color(8, 8, 8),
             };
         const themeFonts = { /* Define your actual fonts here if needed */ };
+        console.log("[AlphaTab Debug] Theme colors and fonts determined.");
 
-        this.alphaTabSettings = new alphaTab.Settings();
-        this.alphaTabSettings.core.engine = "svg";
-        this.alphaTabSettings.core.enableLazyLoading = true;
+        this.alphaTabSettings = new alphaTab.Settings(); // Use the aliased import if that's your setup
+        console.log("[AlphaTab Debug] Initial new alphaTab.Settings() object:", JSON.stringify(this.alphaTabSettings));
+
+        this.alphaTabSettings.core.engine = "svg"; // SVG is generally more reliable for web plugins
+        this.alphaTabSettings.core.enableLazyLoading = true; // Good for performance
+        // this.alphaTabSettings.core.logLevel = 'debug'; // Enable AlphaTab's internal debug logging if needed
 
         const pluginId = this.pluginInstance?.manifest?.id;
         if (!pluginId) {
-            const errorMsg = "AlphaTabPlugin: CRITICAL - Plugin ID is not available during AlphaTab initialization. Cannot load resources.";
+            const errorMsg = "[AlphaTab Plugin Error] CRITICAL - Plugin ID is not available during AlphaTab initialization. Cannot load resources.";
             console.error(errorMsg);
             new Notice(errorMsg, 10000);
             this.showErrorInOverlay("AlphaTab Setup Error: Plugin ID missing.");
@@ -209,18 +253,25 @@ export class TabView extends FileView {
         }
         console.log(`[AlphaTab Debug] Using Plugin ID for resources: '${pluginId}'`);
 
+        // Current debugging state: disable workers and player to simplify
         this.alphaTabSettings.core.useWorkers = false;
         this.alphaTabSettings.player.enablePlayer = false;
-
+        console.log(`[AlphaTab Debug] core.useWorkers set to: ${this.alphaTabSettings.core.useWorkers}`);
+        console.log(`[AlphaTab Debug] player.enablePlayer set to: ${this.alphaTabSettings.player.enablePlayer}`);
+        
         try {
-            const fontDirectoryAssetPath = `assets/alphatab/font/`;
-            this.alphaTabSettings.core.fontDirectory = this.getPluginAssetHttpUrl(pluginId, fontDirectoryAssetPath);
+            const fontDirectoryAssetPath = `assets/alphatab/font/`; // Ensure this path is correct relative to your plugin root
+            const generatedFontDir = this.getPluginAssetHttpUrl(pluginId, fontDirectoryAssetPath);
+            this.alphaTabSettings.core.fontDirectory = generatedFontDir;
+            console.log(`[AlphaTab Debug] settings.core.fontDirectory set to: '${generatedFontDir}'`);
             
-            const mainAlphaTabScriptAssetPath = `assets/alphatab/alphaTab.mjs`;
-            this.alphaTabSettings.core.scriptFile = this.getPluginAssetHttpUrl(pluginId, mainAlphaTabScriptAssetPath);
+            const mainAlphaTabScriptAssetPath = `assets/alphatab/alphaTab.mjs`; // Ensure this path is correct
+            const generatedScriptFile = this.getPluginAssetHttpUrl(pluginId, mainAlphaTabScriptAssetPath);
+            this.alphaTabSettings.core.scriptFile = generatedScriptFile;
+            console.log(`[AlphaTab Debug] settings.core.scriptFile set to: '${generatedScriptFile}'`);
 
         } catch (e: any) {
-            console.error("[AlphaTab Debug] Critical error during resource URL construction:", e);
+            console.error("[AlphaTab Plugin Error] Critical error during resource URL construction:", e.message, e.stack);
             new Notice("AlphaTab Error: Could not construct essential resource paths.", 10000);
             this.showErrorInOverlay("AlphaTab Setup Error: Resource path construction failed critically.");
             return;
@@ -230,126 +281,226 @@ export class TabView extends FileView {
         this.alphaTabSettings.display.layoutMode = LayoutMode.Page;
         Object.assign(this.alphaTabSettings.display.resources, themeColors, themeFonts);
 
-        this.alphaTabSettings.player.enableCursor = true;
-        this.alphaTabSettings.player.scrollMode = ScrollMode.Continuous;
-        this.alphaTabSettings.player.scrollElement = this.atViewportRef;
-        this.alphaTabSettings.player.scrollOffsetY = -30;
+        this.alphaTabSettings.player.enableCursor = true; // Player-related, but harmless to set
+        this.alphaTabSettings.player.scrollMode = ScrollMode.Continuous; // Player-related
+        this.alphaTabSettings.player.scrollElement = this.atViewportRef; // Player-related
+        this.alphaTabSettings.player.scrollOffsetY = -30; // Player-related
 
-        console.log("[AlphaTab Debug] Original typeof module:", typeof module);
-        let originalModule: any;
-        let modifiedGlobals = false;
-        // @ts-ignore
-        if (typeof module !== "undefined") {
-            originalModule = globalThis.module;
-            // @ts-ignore
-            globalThis.module = undefined;
-            modifiedGlobals = true;
-            console.log("[AlphaTab Debug] Temporarily undefined globalThis.module");
+        console.log("[AlphaTab Debug] Final AlphaTab settings before API initialization:", JSON.stringify(this.alphaTabSettings, null, 2));
+
+        // --- Hack Removed ---
+        // No more temporary modification of globalThis.module
+
+        // Log environment state just before AlphaTabApi instantiation
+        console.log("[AlphaTab Debug] Environment state check before AlphaTabApi instantiation:");
+        console.log(`[AlphaTab Debug] typeof window: ${typeof window}, window exists: ${typeof window !== 'undefined'}`);
+        console.log(`[AlphaTab Debug] typeof document: ${typeof document}, document exists: ${typeof document !== 'undefined'}`);
+        console.log(`[AlphaTab Debug] typeof process: ${typeof process}`);
+        if (typeof process !== 'undefined') {
+            console.log("[AlphaTab Debug] process.versions:", JSON.stringify(process.versions));
+            console.log("[AlphaTab Debug] process.type:", process.type); // 'renderer' in Electron render process
         }
+        console.log(`[AlphaTab Debug] typeof module: ${typeof module}`);
+        if (typeof module !== 'undefined' && module && typeof module === 'object') {
+             // Be careful logging 'module' directly, it can be large or circular. Log specific properties if needed.
+            console.log(`[AlphaTab Debug] module object exists. module.exports type: ${typeof module.exports}, module.id: ${module.id}`);
+        }
+        
+        if (!this.atMainRef) {
+            console.error("[AlphaTab Plugin Error] CRITICAL: this.atMainRef (DOM element for AlphaTab) is null or undefined before API instantiation. AlphaTab will fail.");
+            this.showErrorInOverlay("AlphaTab Setup Error: Target DOM element missing.");
+            return;
+        }
+        console.log("[AlphaTab Debug] this.atMainRef (DOM element for AlphaTab):", this.atMainRef);
 
+
+        console.log("[AlphaTab Debug] Attempting to instantiate alphaTab.AlphaTabApi...");
         try {
-            console.log("[AlphaTab Debug] Final settings before API init:", JSON.stringify(this.alphaTabSettings, null, 2));
-            this.api = new alphaTab.AlphaTabApi(this.atMainRef, this.alphaTabSettings);
-            console.log("[AlphaTab Debug] AlphaTabApi instantiated successfully.");
+            this.api = new alphaTab.AlphaTabApi(this.atMainRef, this.alphaTabSettings); // Use aliased import
+            console.log("[AlphaTab Debug] alphaTab.AlphaTabApi instantiated successfully (or at least did not throw immediately).");
         } catch (e: any) {
-            console.error("Failed to initialize AlphaTab API:", e);
-            this.showErrorInOverlay(`Failed to initialize AlphaTab: ${e.message}`);
-            if (modifiedGlobals) {
-                // @ts-ignore
-                globalThis.module = originalModule;
-                console.log("[AlphaTab Debug] Restored globalThis.module on API init error");
+            console.error("[AlphaTab Plugin Error] FAILED to initialize AlphaTab API. Error Name:", e.name, "Message:", e.message);
+            console.error("[AlphaTab Plugin Error] Error Details:", e);
+            if (e.stack) {
+                console.error("[AlphaTab Plugin Error] Error Stack:", e.stack);
             }
-            return;
-        } finally {
-            if (modifiedGlobals && globalThis.module === undefined) {
-                 // @ts-ignore
-                globalThis.module = originalModule;
-                console.log("[AlphaTab Debug] Restored globalThis.module in finally block");
-            }
+            this.showErrorInOverlay(`Failed to initialize AlphaTab: ${e.name} - ${e.message}`);
+            return; // Stop further execution if API init fails
         }
 
+        console.log("[AlphaTab Debug] Post-instantiation API object check:");
         if (!this.api) {
-            console.error("[AlphaTab Debug] API is null after instantiation attempt, cannot proceed.");
-            this.showErrorInOverlay("AlphaTab Error: API failed to initialize.");
+            console.error("[AlphaTab Plugin Error] CRITICAL: this.api is null or undefined AFTER instantiation attempt, even if no error was thrown. Cannot proceed.");
+            this.showErrorInOverlay("AlphaTab Error: API failed to initialize (object is null).");
             return;
         }
+        
+        console.log("[AlphaTab Debug] this.api object:", this.api); // Could be large, log specific parts if needed
+        console.log(`[AlphaTab Debug] typeof this.api.error: ${typeof this.api.error}`);
+        if (this.api.error) {
+            console.log("[AlphaTab Debug] this.api.error object:", this.api.error);
+            console.log(`[AlphaTab Debug] typeof this.api.error.on: ${typeof this.api.error.on}`);
+        } else {
+            console.error("[AlphaTab Plugin Error] this.api.error is undefined/null. Event listeners cannot be attached.");
+        }
 
-        this.api.error.on(this.handleAlphaTabError.bind(this));
-        this.api.renderStarted.on(this.handleAlphaTabRenderStarted.bind(this));
-        this.api.renderFinished.on(this.handleAlphaTabRenderFinished.bind(this));
-        this.api.scoreLoaded.on(this.handleAlphaTabScoreLoaded.bind(this));
-        this.api.playerStateChanged.on(this.handlePlayerStateChanged.bind(this));
-        this.api.soundFontLoad.on(e => console.log("SoundFont loading progress:", e.progress));
-        this.api.soundFontLoaded.on(() => new Notice("SoundFont loaded successfully!"));
-        this.api.soundFontLoadFailed.on(e => {
-            console.error("SoundFont load failed:", e);
-            this.showErrorInOverlay("Failed to load SoundFont.");
-            new Notice("Error: Could not load SoundFont for playback.");
-        });
+        // Check other expected event emitters
+        const eventEmittersToCheck = ['renderStarted', 'renderFinished', 'scoreLoaded', 'playerStateChanged', 'soundFontLoad', 'soundFontLoaded', 'soundFontLoadFailed'];
+        for (const eventName of eventEmittersToCheck) {
+            // @ts-ignore
+            const emitter = this.api[eventName];
+            console.log(`[AlphaTab Debug] typeof this.api.${eventName}: ${typeof emitter}`);
+            if (emitter) {
+                // @ts-ignore
+                console.log(`[AlphaTab Debug] typeof this.api.${eventName}.on: ${typeof emitter.on}`);
+            } else {
+                console.warn(`[AlphaTab Debug] this.api.${eventName} is undefined/null.`);
+            }
+        }
+
+
+        // Defensive event listener attachment
+        try {
+            if (this.api && this.api.error && typeof this.api.error.on === 'function') {
+                this.api.error.on(this.handleAlphaTabError.bind(this));
+            } else {
+                console.error("[AlphaTab Plugin Error] Cannot attach 'error' event listener: api.error or api.error.on is invalid.");
+            }
+            if (this.api && this.api.renderStarted && typeof this.api.renderStarted.on === 'function') {
+                this.api.renderStarted.on(this.handleAlphaTabRenderStarted.bind(this));
+            } else {
+                console.warn("[AlphaTab Debug] Cannot attach 'renderStarted' event listener.");
+            }
+            // ... (similarly for other event listeners)
+            if (this.api && this.api.renderFinished && typeof this.api.renderFinished.on === 'function') {
+                 this.api.renderFinished.on(this.handleAlphaTabRenderFinished.bind(this));
+            } else {
+                console.warn("[AlphaTab Debug] Cannot attach 'renderFinished' event listener.");
+            }
+            if (this.api && this.api.scoreLoaded && typeof this.api.scoreLoaded.on === 'function') {
+                this.api.scoreLoaded.on(this.handleAlphaTabScoreLoaded.bind(this));
+            } else {
+                console.warn("[AlphaTab Debug] Cannot attach 'scoreLoaded' event listener.");
+            }
+            if (this.api?.playerStateChanged && typeof this.api.playerStateChanged.on === 'function') {
+                this.api.playerStateChanged.on(this.handlePlayerStateChanged.bind(this));
+            } else {
+                 console.warn("[AlphaTab Debug] Cannot attach 'playerStateChanged' event listener.");
+            }
+            // Soundfont events (only really relevant if player is enabled, but harmless to try attaching)
+            if (this.api?.soundFontLoad && typeof this.api.soundFontLoad.on === 'function') {
+                this.api.soundFontLoad.on(e => console.log("[AlphaTab Debug] SoundFont loading progress:", e.progress));
+            }
+            if (this.api?.soundFontLoaded && typeof this.api.soundFontLoaded.on === 'function') {
+                this.api.soundFontLoaded.on(() => { console.log("[AlphaTab Debug] SoundFont loaded successfully event received."); new Notice("SoundFont loaded successfully!"); });
+            }
+            if (this.api?.soundFontLoadFailed && typeof this.api.soundFontLoadFailed.on === 'function') {
+                this.api.soundFontLoadFailed.on(e => {
+                    console.error("[AlphaTab Plugin Error] SoundFont load failed event:", e);
+                    this.showErrorInOverlay("Failed to load SoundFont (event).");
+                    new Notice("Error: Could not load SoundFont for playback.");
+                });
+            }
+        } catch (e: any) {
+            console.error("[AlphaTab Plugin Error] Error attaching AlphaTab event listeners:", e.message, e.stack);
+            this.showErrorInOverlay("AlphaTab Error: Failed to set up event handlers.");
+            return; // Critical if event handlers can't be set
+        }
+
 
         if (this.alphaTabSettings.player.enablePlayer) {
             this.showLoadingOverlay("Loading SoundFont...");
+            console.log("[AlphaTab Debug] Attempting to load SoundFont as player is enabled.");
             try {
-                const soundFontAssetPath = `assets/alphatab/soundfont/sonivox.sf2`;
-                // For binary files like soundfont, we use vault.readBinary, not getPluginAssetUrl
+                const soundFontAssetPath = `assets/alphatab/soundfont/sonivox.sf2`; // Ensure this path is correct
                 const soundFontVaultPath = normalizePath(`${this.pluginInstance.manifest.dir}/${soundFontAssetPath}`);
+                console.log(`[AlphaTab Debug] SoundFont vault path: ${soundFontVaultPath}`);
                 if (await this.app.vault.adapter.exists(soundFontVaultPath)) {
                     const soundFontData = await this.app.vault.adapter.readBinary(soundFontVaultPath);
-                    await this.api.loadSoundFont(soundFontData);
+                    console.log(`[AlphaTab Debug] SoundFont data loaded from vault, size: ${soundFontData.byteLength} bytes. Calling api.loadSoundFont().`);
+                    await this.api.loadSoundFont(soundFontData); // Assuming this.api is valid here
+                    console.log("[AlphaTab Debug] api.loadSoundFont() called.");
                 } else {
-                    console.error("SoundFont file not found:", soundFontVaultPath);
+                    console.error("[AlphaTab Plugin Error] SoundFont file not found at:", soundFontVaultPath);
                     this.showErrorInOverlay("SoundFont file not found. Playback disabled.");
                 }
             } catch (e: any) {
-                console.error("Error loading SoundFont:", e);
+                console.error("[AlphaTab Plugin Error] Error loading SoundFont:", e.message, e.stack);
                 this.showErrorInOverlay(`Error loading SoundFont: ${e.message}.`);
             }
+        } else {
+            console.log("[AlphaTab Debug] Player is not enabled, skipping SoundFont loading.");
         }
 
         this.showLoadingOverlay(`Loading tab: ${file.basename}...`);
+        console.log(`[AlphaTab Debug] Attempting to load score data for file: ${file.path}`);
         try {
             const scoreData = await this.app.vault.readBinary(file);
-            await this.api.load(new Uint8Array(scoreData));
+            console.log(`[AlphaTab Debug] Score data read from vault, size: ${scoreData.byteLength} bytes. Calling api.load().`);
+            if (!this.api) throw new Error("API not initialized before loading score."); // Should not happen if checks above are good
+            await this.api.load(new Uint8Array(scoreData)); // AlphaTab expects Uint8Array or similar
+            console.log("[AlphaTab Debug] api.load() called for score data.");
         } catch (e: any) {
-            console.error("Error loading score data:", e);
-            this.handleAlphaTabError({ message: `Failed to load score file: ${e.message}` } as any);
+            console.error("[AlphaTab Plugin Error] Error loading score data into AlphaTab:", e.message, e.stack);
+            this.handleAlphaTabError({ message: `Failed to load score file into AlphaTab: ${e.message}` } as any);
         }
+        console.log("[AlphaTab Debug] initializeAlphaTabAndLoadScore finished.");
     }
 
     private handleAlphaTabError(error: { message?: string } & any) {
-        console.error("AlphaTab Processing Error:", error);
-        const errorMessage = `AlphaTab Error: ${error.message || 'An unexpected issue occurred.'}`;
+        console.error("[AlphaTab Internal Error]", error); // Log the full error object
+        const errorMessage = `AlphaTab Error: ${error.message || 'An unexpected issue occurred within AlphaTab.'}`;
         this.showErrorInOverlay(errorMessage);
         new Notice(errorMessage, 10000);
     }
 
-    private handleAlphaTabRenderStarted() { this.showLoadingOverlay("Rendering sheet..."); }
+    private handleAlphaTabRenderStarted() {
+        console.log("[AlphaTab Debug] Event: renderStarted");
+        this.showLoadingOverlay("Rendering sheet...");
+    }
+
     private handleAlphaTabRenderFinished() {
+        console.log("[AlphaTab Debug] Event: renderFinished");
         this.hideLoadingOverlay();
         new Notice("Tab rendered!");
-        this.leaf.updateHeader();
+        this.leaf.updateHeader(); // Update display text if title changed
     }
 
     private handleAlphaTabScoreLoaded(score: Score | null) {
+        console.log("[AlphaTab Debug] Event: scoreLoaded. Score object:", score);
         if (!score) {
+            console.error("[AlphaTab Plugin Error] Score data could not be loaded or parsed by AlphaTab (score object is null).");
             this.showErrorInOverlay("Error: Score data could not be loaded or parsed.");
             this.score = null; return;
         }
         this.score = score;
         new Notice(`Score loaded: ${score.title || 'Untitled'}`);
+        
         this.tracksModal.setTracks(score.tracks);
         if (score.tracks?.length > 0) {
+            // Default to rendering the first track or previously selected tracks
+            // For simplicity, let's always default to the first track on new score load.
             this.renderTracks = [score.tracks[0]];
             this.tracksModal.setRenderTracks(this.renderTracks);
-            this.api?.renderTracks(this.renderTracks);
+            console.log(`[AlphaTab Debug] Defaulting to render track: ${score.tracks[0].name}`);
+            if (this.api) {
+                this.api.renderTracks(this.renderTracks);
+            } else {
+                 console.warn("[AlphaTab Debug] API not available to render tracks after score load.");
+            }
         } else {
             this.renderTracks = [];
+            console.log("[AlphaTab Debug] No tracks found in the score.");
         }
-        this.leaf.updateHeader();
+        this.leaf.updateHeader(); // Update display text
     }
 
     private handlePlayerStateChanged(args: PlayerStateChangedEventArgs) {
-        if (!this.playPauseButton || !this.stopButton) return;
+        console.log(`[AlphaTab Debug] Event: playerStateChanged - New state: ${PlayerState[args.state]}, isPlaying: ${args.isPlaying}`);
+        if (!this.playPauseButton || !this.stopButton) {
+             console.warn("[AlphaTab Debug] Player state changed, but control buttons not found.");
+            return;
+        }
         const isPlaying = args.state === PlayerState.Playing;
         const isPaused = args.state === PlayerState.Paused;
         this.playPauseButton.setText(isPlaying ? "Pause" : "Play");
@@ -360,77 +511,128 @@ export class TabView extends FileView {
         if (this.atOverlayRef && this.atOverlayContentRef) {
             this.atOverlayContentRef.setText(message);
             this.atOverlayRef.style.display = "flex";
+            this.atOverlayRef.removeClass("error"); // Ensure error class is removed if it was set
+            // console.log(`[AlphaTab Debug] Showing loading overlay: "${message}"`);
+        } else {
+            // console.warn("[AlphaTab Debug] Attempted to show loading overlay, but DOM elements not ready.");
         }
     }
     private showErrorInOverlay(errorMessage: string) {
-        this.showLoadingOverlay(errorMessage);
-        this.atOverlayRef?.addClass("error");
+        // console.log(`[AlphaTab Debug] Showing error in overlay: "${errorMessage}"`);
+        this.showLoadingOverlay(errorMessage); // Reuse showLoadingOverlay to set text and display
+        if (this.atOverlayRef) {
+             this.atOverlayRef.addClass("error"); // Add a distinct class for error styling
+        }
     }
     private hideLoadingOverlay() {
         if (this.atOverlayRef) {
             this.atOverlayRef.style.display = "none";
             this.atOverlayRef.removeClass("error");
+            // console.log("[AlphaTab Debug] Hiding loading overlay.");
+        } else {
+            // console.warn("[AlphaTab Debug] Attempted to hide loading overlay, but DOM element not ready.");
         }
     }
 
     public onChangeTracks(selectedTracks?: Track[]) {
-        if (!this.api) return;
+        console.log("[AlphaTab Debug] onChangeTracks called. Selected tracks:", selectedTracks);
+        if (!this.api) {
+            console.warn("[AlphaTab Debug] onChangeTracks: API not initialized.");
+            new Notice("AlphaTab API not ready. Cannot change tracks.", 5000);
+            return;
+        }
         if (selectedTracks && selectedTracks.length > 0) {
             this.renderTracks = selectedTracks;
             this.api.renderTracks(this.renderTracks);
             new Notice(`Rendering ${selectedTracks.length} track(s).`);
         } else {
-            new Notice("No tracks selected to render.");
+            this.renderTracks = []; // Clear selection if nothing is chosen
+            this.api.renderTracks([]); // Tell AlphaTab to render no tracks (or all, depending on its behavior for empty array)
+            new Notice("No tracks selected to render. Showing all tracks or default."); // Or adjust message
         }
     }
 
     public downloadMidi() {
-        if (!this.score || !this.api) { new Notice("No score loaded."); return; }
+        console.log("[AlphaTab Debug] downloadMidi called.");
+        if (!this.score) { new Notice("No score loaded to generate MIDI."); console.warn("[AlphaTab Debug] Download MIDI: No score loaded."); return; }
+        if (!this.api) { new Notice("AlphaTab API not ready for MIDI generation."); console.warn("[AlphaTab Debug] Download MIDI: API not ready."); return; }
+        
         try {
-            const midiFile = new alphaTab.midi.MidiFile();
-            this.api.midiGenerate(this.renderTracks.map(t => t.index), midiFile);
+            const tracksToExport = this.renderTracks.length > 0 ? this.renderTracks : this.score.tracks;
+            if (!tracksToExport || tracksToExport.length === 0) {
+                new Notice("No tracks available or selected to export as MIDI.");
+                console.warn("[AlphaTab Debug] Download MIDI: No tracks to export.");
+                return;
+            }
+
+            const midiFile = new alphaTab.midi.MidiFile(); // Use aliased import
+            console.log(`[AlphaTab Debug] Generating MIDI for tracks:`, tracksToExport.map(t => t.name));
+            this.api.midiGenerate(tracksToExport.map(t => t.index), midiFile); // Use indices of selected tracks
+            
             const fileName = `${this.score.title || 'Untitled Tab'}.mid`;
             saveToFile(fileName, new Blob([midiFile.toBinary()], { type: "audio/midi" }));
             new Notice(`MIDI "${fileName}" download started.`);
         } catch (e: any) {
-            console.error("Error generating MIDI:", e);
+            console.error("[AlphaTab Plugin Error] Error generating MIDI:", e.message, e.stack);
             new Notice(`Error generating MIDI: ${e.message}`);
         }
     }
 
     override onResize(): void {
         super.onResize();
+        // console.log("[AlphaTab Debug] onResize called.");
         if (this.api && this.atMainRef) {
             const newWidth = this.atMainRef.clientWidth;
             if (newWidth > 0 && newWidth !== this.renderWidth) {
+                console.log(`[AlphaTab Debug] Resizing AlphaTab from ${this.renderWidth} to ${newWidth}`);
                 this.renderWidth = newWidth;
-                if (this.api.settings?.display) {
+                if (this.api.settings?.display) { // Check if settings and display object exist
                     this.api.settings.display.width = newWidth;
                 } else {
-                    console.warn("[AlphaTab Debug] API settings or display object not found during resize.");
+                    console.warn("[AlphaTab Debug] API settings or display object not found during resize. Re-rendering might use old width or default.");
                 }
-                this.api.render();
-                new Notice("Tab resized and re-rendered.");
+                this.api.render(); // Re-render the score with the new width
+                // new Notice("Tab resized and re-rendered."); // Can be a bit noisy
             }
         }
     }
 
     override async onUnloadFile(file: TFile): Promise<void> {
-        if (this.api) { try { this.api.destroy(); } catch (e) { console.error("Error destroying API on unload:", e); } this.api = null; }
-        this.score = null; this.currentFile = null; this.contentEl.empty();
+        console.log(`[AlphaTab Debug] onUnloadFile: Unloading file '${file.path}'`);
+        if (this.api) {
+            console.log("[AlphaTab Debug] Destroying AlphaTab API instance on unloadFile.");
+            try { this.api.destroy(); } catch (e: any) { console.error("[AlphaTab Plugin Error] Error destroying API on unloadFile:", e.message, e.stack); }
+            this.api = null;
+        }
+        this.score = null;
+        this.currentFile = null;
+        this.contentEl.empty(); // Clear content
         await super.onUnloadFile(file);
     }
 
+    // This is called when the view itself is being closed permanently, not just when a file is closed.
     async onunload() {
-        if (this.api) { try { this.api.destroy(); } catch(e) { console.error("Error destroying API on final unload:", e); } this.api = null; }
+        console.log("[AlphaTab Debug] TabView onunload: Main view unload sequence started.");
+        if (this.api) {
+            console.log("[AlphaTab Debug] Destroying AlphaTab API instance on final view unload.");
+            try { this.api.destroy(); } catch(e: any) { console.error("[AlphaTab Plugin Error] Error destroying API on final view unload:", e.message, e.stack); }
+            this.api = null;
+        }
+        // Any other cleanup specific to TabView
         await super.onunload();
+        console.log("[AlphaTab Debug] TabView onunload finished.");
     }
 }
 
+// Helper function (remains the same)
 export function saveToFile(fileName: string, blob: Blob) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = fileName;
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a); URL.revokeObjectURL(url);
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    console.log(`[AlphaTab Debug] File '${fileName}' saved.`);
 }
