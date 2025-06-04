@@ -1,8 +1,5 @@
 import * as fs from "fs";
 import * as path from "path";
-// 确保也导入了 AlphaTab 的 FontFileFormat (路径可能需要根据你的项目调整)
-// import { FontFileFormat } from "@coderline/alphatab";
-// 或者你之前用的 alphaTabModule.model.FontFileFormat
 // --- Nodejs modules ---
 import {
 	App,
@@ -22,10 +19,10 @@ import {
 	type PlayerStateChangedEventArgs,
 	type Score,
 	type Track,
-	// FontFileFormat,
+	// FontFileFormat, // 添加FontFileFormat导入
 	LayoutMode,
 	ScrollMode,
-	// PlayerState // Un-commented PlayerState as it's used
+	// PlayerState // 导入PlayerState枚举
 } from "@coderline/alphatab"; // Or your specific import path for alphaTab
 
 export const VIEW_TYPE_TAB = "tab-view";
@@ -60,6 +57,7 @@ if (alphaTab.Environment.webPlatform === alphaTab.WebPlatform.NodeJs) {
 // 或者其依赖的组件会进行判断。
 // BrowserUiFacade 构造函数中的那段 if 判断是基于 Environment.webPlatform 静态属性的，
 // 所以我们主要目标是改变那个静态属性。
+
 
 // TracksModal class (remains the same from your provided code)
 export class TracksModal extends Modal {
@@ -478,8 +476,8 @@ export class TabView extends FileView {
 		);
 
 
-		// 从这里开始字体的设置方法不应该使用 fontJsonFileName
-		// const fontJsonFileName = "Bravura.font.json"; // 确保这个文件名与你的字体一致
+		// 使用正确的字体元数据文件名
+		const fontJsonFileName = "bravura_metadata.json"; // 修正为正确的元数据文件名
 		const fontBinaryFileName = "Bravura.woff"; // 你提到的是 .woff 文件
 
 		const absoluteFontJsonPath = path.join(
@@ -512,7 +510,7 @@ export class TabView extends FileView {
 				err
 			);
 			this.showErrorInOverlay(
-				`Font metadata missing: ${fontJsonFileName}. Check path & permissions.`
+				`字体元数据缺失: ${fontJsonFileName}. 请检查路径和权限。`
 			);
 			return; // 关键文件缺失，无法继续
 		}
@@ -528,7 +526,7 @@ export class TabView extends FileView {
 				err
 			);
 			this.showErrorInOverlay(
-				`Font file missing: ${fontBinaryFileName}. Check path & permissions.`
+				`字体文件缺失: ${fontBinaryFileName}. 请检查路径和权限。`
 			);
 			return; // 关键文件缺失，无法继续
 		}
@@ -546,7 +544,7 @@ export class TabView extends FileView {
 		// 3. 设置 smuflFontSources
 		const sources = new Map<FontFileFormat, string>();
 		sources.set(FontFileFormat.Json, fontJsonDataUrl);
-		sources.set(FontFileFormat.Woff, fontBinaryDataUrl); // 确保 FontFileFormat.Woff 对应你的 .woff 文件
+		sources.set(FontFileFormat.Woff, fontBinaryDataUrl); 
 
 		this.alphaTabSettings.core.smuflFontSources = sources;
 		this.alphaTabSettings.core.fontDirectory = null; // 不再需要 fontDirectory，因为我们提供了绝对的 data: URL
@@ -1134,7 +1132,7 @@ export class TabView extends FileView {
 		}
 		const isPlaying = args.state === PlayerState.Playing;
 		const isPaused = args.state === PlayerState.Paused;
-		this.playPauseButton.setText(isPlaying ? "Pause" : "Play");
+		this.playPauseButton.setText(isPlaying ? "暂停" : "播放"); // 中文化按钮文本
 		this.stopButton.disabled = !(isPlaying || isPaused);
 	}
 
