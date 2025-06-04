@@ -1,5 +1,5 @@
 // main.ts
-import { Plugin, TFile } from "obsidian";
+import { Plugin, TFile, WorkspaceLeaf } from "obsidian";
 import { TabView, VIEW_TYPE_TAB } from "./TabView";
 
 interface AlphaTabPluginSettings {
@@ -17,10 +17,13 @@ export default class AlphaTabPlugin extends Plugin {
   async onload() {
     await this.loadSettings();
 
+    // 加载自定义样式
+    this.registerStyles();
+
     // 注册吉他谱文件扩展名的查看器
     this.registerView(
       VIEW_TYPE_TAB,
-      (leaf) => new TabView(leaf)
+      (leaf) => new TabView(leaf, this)
     );
 
     // 注册文件扩展名处理
@@ -32,7 +35,7 @@ export default class AlphaTabPlugin extends Plugin {
         if (file instanceof TFile && this.isGuitarProFile(file.extension)) {
           menu.addItem((item) => {
             item
-              .setTitle("Open as Guitar Tab")
+              .setTitle("Open as Guitar Tab (AlphaTab)")
               .setIcon("music")
               .onClick(async () => {
                 const leaf = this.app.workspace.getLeaf(false);
@@ -40,13 +43,31 @@ export default class AlphaTabPlugin extends Plugin {
                   type: VIEW_TYPE_TAB,
                   state: { file: file.path },
                 });
+                this.app.workspace.revealLeaf(leaf); // 确保新叶子处于活动状态
               });
           });
         }
       })
     );
 
-    // 可以在这里添加其他设置，如命令、设置选项卡等
+    console.log("AlphaTab Plugin Loaded");
+  }
+
+  registerStyles() {
+    // 添加CSS的简单方式
+    const css = `@import url('app://local/${this.manifest.dir}/styles.css?v=${this.manifest.version}');`;
+    const styleEl = document.createElement('style');
+    styleEl.id = 'alphatab-plugin-styles'; // 添加ID以便于移除/更新
+    styleEl.innerHTML = css;
+    document.head.appendChild(styleEl);
+
+    // 确保在卸载时移除
+    this.register(() => {
+      const existingStyleEl = document.getElementById('alphatab-plugin-styles');
+      if (existingStyleEl) {
+        existingStyleEl.remove();
+      }
+    });
   }
 
   isGuitarProFile(extension: string | undefined): boolean {
@@ -57,6 +78,7 @@ export default class AlphaTabPlugin extends Plugin {
   onunload() {
     // 清理工作
     this.app.workspace.detachLeavesOfType(VIEW_TYPE_TAB);
+    console.log("AlphaTab Plugin Unloaded");
   }
 
   async loadSettings() {
