@@ -1,5 +1,16 @@
 # 小记录 渲染问题
 
+## 记录
+
+当你将 settings.core.fontDirectory 设置为 null 时，Environment.createStyleElement (单数，被 BrowserUiFacade.createSharedStyleElement 调用) 会失败，报 "Font directory could not be detected"，导致这个基础的 alphaTabStyle 元素无法创建。
+
+当你将 settings.core.fontDirectory 设置为 file:///... 时，这个基础的 alphaTabStyle 元素确实被创建了（因为 "Font directory could not be detected" 错误消失了），并且其内容是基于 fontDirectory 构建的 @font-face（尝试从 file:/// 加载 Bravura.eot, .woff, .otf, .svg）。
+
+同时，支持 smuflFontSources 的 BrowserUiFacade.createStyleElements (复数) 应该也会执行，它会根据你提供的 settings.core.smuflFontSources (包含 data:URL) 来创建另一个（或覆盖）针对 SMuFL 音乐符号的 @font-face 规则，并使用动态的 font-family (如 alphaTabN) 和 <style> 标签 ID (如 alphaTabStyleN)。
+为什么当 smuflFontSources 提供了 data:URL 后，日志中仍然出现尝试从 fontDirectory (file:/// 路径) 加载 Bravura 字体并导致 "Not allowed" 错误？
+
+## 上下文
+
 看起来由于 `Obsidian` 和 `AlphaTab.js` 的特性， `AlphaTab.js` 的 `Environment.ts` 和 `BroserUiFacade.ts`是非常常用的上下文。
 
 在这里我们提供两份文件的完整源码日常给ai提供技术上下文。
