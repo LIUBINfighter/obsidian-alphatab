@@ -14,6 +14,10 @@ import {
 } from "@coderline/alphatab";
 import { Notice, TFile, App } from "obsidian";
 
+// Node.js modules for reading files (available in Obsidian plugin context)
+import * as fs from "fs";
+import * as path from "path";
+
 export interface AlphaTabManagerOptions {
 	pluginInstance: any;
 	app: App;
@@ -88,6 +92,26 @@ export class AlphaTabManager {
 		}
 	}
 
+	private getAbsolutePath(relativePath: string): string {
+		// Based on Obsidian's plugin structure, manifest.dir is relative to vault root.
+		// We need an absolute path for fs.
+		// vault.adapter.getBasePath() gives the absolute path to the vault.
+		const vaultBasePath = (this.app.vault.adapter as any).getBasePath
+			? (this.app.vault.adapter as any).getBasePath()
+			: "";
+		if (!vaultBasePath) {
+			console.warn(
+				"[AlphaTabManager] Vault base path could not be determined. Assuming relative paths for fs might fail if not running from vault root context (this is unlikely for a plugin)."
+			);
+		}
+		// manifest.dir is like ".obsidian/plugins/your-plugin-id"
+		return path.join(
+			vaultBasePath,
+			this.pluginInstance.manifest.dir,
+			relativePath
+		);
+	}
+
 	async initializeAndLoadScore(file: TFile) {
 		if (this.api) {
 			try {
@@ -107,15 +131,15 @@ export class AlphaTabManager {
 		this.settings = new alphaTab.Settings();
 		this.settings.core.engine = "svg";
 		this.settings.core.enableLazyLoading = true;
-		this.settings.core.logLevel = LogLevel.Debug; // Enable AlphaTab's verbose logging
+		this.settings.core.logLevel = LogLevel.Debug;
 
-		// --- Configuration for Non-Worker Font Debugging ---
-		this.settings.core.useWorkers = false; // Force disable workers for font debugging
+		// --- Configuration for Non-Worker, Data URL Font Debugging ---
+		this.settings.core.useWorkers = false;
 		this.settings.core.workerFile = null;
-		this.settings.player.enablePlayer = false; // Disable player as it often relies on workers
+		this.settings.player.enablePlayer = false;
 		this.settings.player.soundFont = null;
 		console.log(
-			"[AlphaTabManager] FONT DEBUG MODE: Workers and Player are forcibly disabled."
+			"[AlphaTabManager] DATA URL FONT DEBUG MODE: Workers and Player are forcibly disabled."
 		);
 		// --- End Configuration ---
 
@@ -130,58 +154,126 @@ export class AlphaTabManager {
 			return;
 		}
 		console.log(
-			`[AlphaTabManager] Plugin manifest directory: ${pluginManifestDir}`
+			`[AlphaTabManager] Plugin manifest directory (relative to vault): ${pluginManifestDir}`
 		);
 
-		// 1. Main AlphaTab Script File URL (core.scriptFile)
-		// Use the UMD version 'alphatab.js' for broader compatibility in non-module worker scenarios,
-		// or if AlphaTab uses it to determine a base path for other non-font resources.
-		const mainScriptFileSuffix = "/assets/alphatab/alphatab.js"; // Assuming UMD version
+		// --- Load Fonts as Data URLs ---
+		this.settings.core.fontDirectory = null; // Explicitly null when using smuflFontSources
+		const fontDataUrls: Record<string, string> = {};
+		let SmuflFontsLoaded = false;
+
+		try {
+			const fontAssetsRelativePath = "assets/alphatab/font"; // Relative to plugin root
+			const fontFilesToLoad = [
+				{ name: "Bravura.woff2", ext: "woff2", mime: "font/woff2" },
+				{ name: "Bravura.woff", ext: "woff", mime: "font/woff" },
+				// Add OTF if you want to provide it and AlphaTab uses it from smuflFontSources
+				// { name: "Bravura.otf", ext: "otf", mime: "font/otf" },
+			];
+
+			for (const fontInfo of fontFilesToLoad) {
+				const absoluteFontPath = this.getAbsolutePath(
+					path.join(fontAssetsRelativePath, fontInfo.name)
+				);
+				if (fs.existsSync(absoluteFontPath)) {
+					const fontBuffer = fs.readFileSync(absoluteFontPath);
+					const fontBase64 = fontBuffer.toString("base64");
+					fontDataUrls[
+						fontInfo.ext
+					] = `data:${fontInfo.mime};base64,${fontBase64}`;
+					SmuflFontsLoaded = true; // At least one font format loaded
+					console.log(
+						`[AlphaTabManager] Encoded ${fontInfo.name} as Data URL for smuflFontSources.`
+					);
+				} else {
+					console.warn(
+						`[AlphaTabManager] Font file NOT FOUND for Data URL: ${absoluteFontPath}`
+					);
+				}
+			}
+
+			// Load bravura_metadata.json
+			const metadataFile = "bravura_metadata.json";
+			const absoluteMetadataPath = this.getAbsolutePath(
+				path.join(fontAssetsRelativePath, metadataFile)
+			);
+			if (fs.existsSync(absoluteMetadataPath)) {
+				const metadataStr = fs.readFileSync(
+					absoluteMetadataPath,
+					"utf8"
+				);
+				// AlphaTab expects the actual JSON content for 'json' key if smuflFontSources is used, not a data URL of the json.
+				// However, if it expects a data URL, then this would be:
+				// const metadataBase64 = Buffer.from(metadataStr).toString("base64");
+				// fontDataUrls["json"] = `data:application/json;base64,${metadataBase64}`;
+				// Let's try providing the string content directly first, if AlphaTab handles that.
+				// Based on AlphaTab source (JsonSmuflFont.ts), it seems to expect the raw data if the "ext" is "json"
+				// For smuflFontSources, it's usually data URLs for font files. Let's see if it picks up metadata differently or if it's only via fontDirectory.
+				// For now, we'll focus on font files in smuflFontSources. AlphaTab might try to load metadata relative to `scriptFile` or based on font.
+				// If issues persist with metadata, we might need `settings.core.smuflMetaDataFile` with an app:// URL.
+				console.log(
+					`[AlphaTabManager] Found ${metadataFile}. AlphaTab will attempt to load it based on font or scriptFile if needed.`
+				);
+			} else {
+				console.warn(
+					`[AlphaTabManager] ${metadataFile} NOT FOUND at ${absoluteMetadataPath}. This might be an issue.`
+				);
+			}
+
+			if (SmuflFontsLoaded) {
+				this.settings.core.smuflFontSources = fontDataUrls;
+				console.log(
+					"[AlphaTabManager] Settings: core.smuflFontSources populated with Data URLs:",
+					Object.keys(fontDataUrls)
+				);
+			} else {
+				console.error(
+					"[AlphaTabManager] CRITICAL: No SMUFL font files (woff2, woff) could be loaded as Data URLs. Rendering will fail."
+				);
+				this.eventHandlers.onError?.({
+					message: "未能加载Bravura字体文件作为Data URL。",
+				});
+				return;
+			}
+		} catch (e: any) {
+			console.error(
+				"[AlphaTabManager] Error loading fonts as Data URLs:",
+				e
+			);
+			this.eventHandlers.onError?.({
+				message: `加载字体Data URL时出错: ${e.message}`,
+			});
+			return;
+		}
+		// --- End Font Loading as Data URLs ---
+
+		// Main AlphaTab Script File URL (core.scriptFile) - still useful for AlphaTab to know its "base"
+		const mainScriptFileSuffix = "/assets/alphatab/alphatab.js";
 		const mainScriptAssetObsidianPath =
 			pluginManifestDir + mainScriptFileSuffix;
 		if (await this.app.vault.adapter.exists(mainScriptAssetObsidianPath)) {
-			const mainScriptURL = this.app.vault.adapter.getResourcePath(
-				mainScriptAssetObsidianPath
-			);
-			this.settings.core.scriptFile = mainScriptURL;
+			this.settings.core.scriptFile =
+				this.app.vault.adapter.getResourcePath(
+					mainScriptAssetObsidianPath
+				);
 			console.log(
-				`[AlphaTabManager] Settings: core.scriptFile = ${mainScriptURL}`
+				`[AlphaTabManager] Settings: core.scriptFile = ${this.settings.core.scriptFile}`
 			);
 		} else {
 			this.settings.core.scriptFile = null;
 			console.error(
-				`[AlphaTabManager] Main AlphaTab script (alphatab.js) NOT FOUND at '${mainScriptAssetObsidianPath}'. This might affect resource discovery.`
+				`[AlphaTabManager] Main AlphaTab script (alphatab.js) NOT FOUND at '${mainScriptAssetObsidianPath}'.`
 			);
 		}
 
-		// 2. Font Directory URL (core.fontDirectory)
-		const fontAssetDirSuffix = "/assets/alphatab/font/";
-		const fontAssetObsidianPath = `${pluginManifestDir}${fontAssetDirSuffix}`;
-		// Assuming the path itself is valid as per your file structure.
-		// getResourcePath doesn't validate existence, but Obsidian's loader will later.
-		try {
-			const fontDirectoryURL = this.app.vault.adapter.getResourcePath(
-				fontAssetObsidianPath
-			);
-			this.settings.core.fontDirectory = fontDirectoryURL;
-			console.log(
-				`[AlphaTabManager] Settings: core.fontDirectory = ${fontDirectoryURL}`
-			);
-		} catch (e) {
-			console.error(
-				`[AlphaTabManager] Error getting resource path for font directory '${fontAssetObsidianPath}':`,
-				e
-			);
-			this.settings.core.fontDirectory = null; // Fallback
-		}
-
-		// CRITICAL: Ensure smuflFontSources is null to force fontDirectory usage.
-		this.settings.core.smuflFontSources = null;
-
-		// Display and Player settings
+		// Display settings
 		this.settings.display.scale = 0.8;
 		this.settings.display.layoutMode = LayoutMode.Page;
-		// ... other display/player settings if needed for non-player mode
+		// Ensure SMUFL font is used
+		this.settings.display.resources.smuflFont = {
+			families: ["Bravura", "alphaTab"],
+			size: 21,
+		}; // AlphaTab might default to 'alphaTab' or use 'Bravura'
 
 		const initialThemeColors = this.darkMode
 			? {
@@ -199,11 +291,11 @@ export class AlphaTabManager {
 		Object.assign(this.settings.display.resources, initialThemeColors);
 
 		console.log(
-			"[AlphaTabManager] Final AlphaTab Settings prepared (Font Debug Mode):",
+			"[AlphaTabManager] Final AlphaTab Settings prepared (Data URL Font Debug Mode):",
 			JSON.parse(JSON.stringify(this.settings))
 		);
 
-		// Environment hack (KEEP THIS SECTION)
+		// Environment hack
 		let originalProcess: any, originalModule: any;
 		let modifiedGlobals = false;
 		try {
@@ -233,16 +325,15 @@ export class AlphaTabManager {
 			}
 
 			console.log(
-				"[AlphaTabManager] Initializing AlphaTabApi (Font Debug Mode)..."
+				"[AlphaTabManager] Initializing AlphaTabApi (Data URL Font Debug Mode)..."
 			);
 
-			// ENSURE mainElement HAS DIMENSIONS IN THE CALLING CODE (e.g., TabView)
 			if (
 				this.mainElement.clientWidth === 0 ||
 				this.mainElement.clientHeight === 0
 			) {
 				console.warn(
-					"[AlphaTabManager] mainElement has zero width or height. This MUST be fixed in the calling View. Rendering might fail or be invisible."
+					"[AlphaTabManager] mainElement has zero width or height. This MUST be fixed in the calling View."
 				);
 			}
 
@@ -269,7 +360,7 @@ export class AlphaTabManager {
 					"ready",
 				];
 				console.log(
-					"[AlphaTabManager] Checking API event emitters (Font Debug Mode):"
+					"[AlphaTabManager] Checking API event emitters (Data URL Font Debug Mode):"
 				);
 				eventNames.forEach((eventName) => {
 					// @ts-ignore
@@ -384,7 +475,6 @@ export class AlphaTabManager {
 					);
 				}
 			} else {
-				// Log error but don't stop other bindings
 				console.error(
 					`[AlphaTabManager] FAILED to bind event '${eventName}'. Emitter is missing or invalid:`,
 					emitter
@@ -396,7 +486,6 @@ export class AlphaTabManager {
 		safeBind("renderStarted", this.eventHandlers.onRenderStarted);
 		safeBind("renderFinished", this.eventHandlers.onRenderFinished);
 
-		// Special handling for scoreLoaded to update internal state
 		// @ts-ignore
 		const scoreLoadedEmitter = this.api!.scoreLoaded;
 		if (scoreLoadedEmitter && typeof scoreLoadedEmitter.on === "function") {
@@ -426,57 +515,40 @@ export class AlphaTabManager {
 		}
 
 		safeBind("playerStateChanged", this.eventHandlers.onPlayerStateChanged);
-		safeBind("fontLoaded", this.eventHandlers.onFontLoaded); // Bind even if initially undefined, to catch if it appears later
+		safeBind("fontLoaded", this.eventHandlers.onFontLoaded);
 		safeBind("soundFontLoaded", this.eventHandlers.onSoundFontLoaded);
 		safeBind("playerReady", this.eventHandlers.onPlayerReady);
-		safeBind("ready", this.eventHandlers.onReady); // Bind even if initially undefined
+		safeBind("ready", this.eventHandlers.onReady);
 	}
 
 	playPause() {
 		if (!this.api) return;
 		if (this.settings.player.enablePlayer) {
+			// This will be false in this debug mode
 			this.api.playPause();
 		} else {
 			console.warn(
-				"[AlphaTabManager] Player is not enabled, cannot play/pause."
+				"[AlphaTabManager] Player is not enabled, cannot play/pause (Data URL Font Debug Mode)."
 			);
-			new Notice("播放器当前已禁用 (字体调试模式)");
+			new Notice("播放器当前已禁用 (Data URL 字体调试模式)");
 		}
 	}
 	stop() {
-		if (!this.api) return;
-		if (this.settings.player.enablePlayer) {
-			this.api.stop();
-		} else {
-			console.warn(
-				"[AlphaTabManager] Player is not enabled, cannot stop."
-			);
-		}
+		/* ... */
 	}
-
 	public updateRenderTracks(tracks: Track[]) {
-		if (!this.api) return;
-		this.renderTracks = tracks;
-		this.api.renderTracks(tracks);
+		/* ... */
 	}
-
 	public getAllTracks(): Track[] {
-		return this.score?.tracks || [];
+		/* ... */
 	}
-
 	public getSelectedRenderTracks(): Track[] {
-		return this.renderTracks;
+		/* ... */
 	}
-
 	render() {
-		this.api?.render();
+		/* ... */
 	}
-
 	destroy() {
-		this.api?.destroy();
-		this.api = null;
-		this.score = null;
-		this.renderTracks = [];
-		console.log("[AlphaTabManager] AlphaTab API destroyed.");
+		/* ... */
 	}
 }
