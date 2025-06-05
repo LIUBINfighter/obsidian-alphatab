@@ -193,6 +193,12 @@ export class AlphaTabManager {
 			}
 			// @ts-ignore
 			resources.musicFont.families = ['Bravura', 'alphaTab'];
+			// @ts-ignore
+			resources.musicFont.size = alphaTab.Environment.MusicFontSize;
+			// @ts-ignore
+			resources.musicFont.style = alphaTab.model.FontStyle?.Plain ?? 0;
+			// @ts-ignore
+			resources.musicFont.weight = alphaTab.model.FontWeight?.Regular ?? 0;
 			console.log('[AlphaTabManager] initializeAndLoadScore: Set settings.display.resources.musicFont.families to:',
 				// @ts-ignore
 				resources.musicFont.families);
@@ -208,24 +214,70 @@ export class AlphaTabManager {
 		}
 		console.log(`[AlphaTabManager] Font load mode: ${fontLoadMode}`);
 
-		// ----------- 仅保留 FontLoadingChecker 的 patch -----------
-		if (alphaTab.FontLoadingChecker && alphaTab.FontLoadingChecker.prototype) {
-			const originalCheckForFontAvailability = alphaTab.FontLoadingChecker.prototype.checkForFontAvailability;
-			alphaTab.FontLoadingChecker.prototype.checkForFontAvailability = function() {
-				const familyToCheck = this._families?.[0];
-				console.warn(`[AlphaTabPatcher] FontLoadingChecker.checkForFontAvailability for: ${familyToCheck}`);
-				if (familyToCheck && /^alphaTab\d*$/.test(familyToCheck)) {
-					console.log(`[AlphaTabPatcher] Forcing success for AlphaTab-generated family '${familyToCheck}' due to known src issue. Will rely on manually injected fonts.`);
-					this.isFontLoaded = true;
+		// ----------- Patch BrowserUiFacade.prototype.createStyleElements -----------
+		console.log("%c--- DIAGNOSING BrowserUiFacade.createStyleElements PATCH ---", "color: orange; font-weight: bold;");
+		// @ts-ignore
+		console.log("typeof alphaTab.BrowserUiFacade:", typeof alphaTab.BrowserUiFacade);
+		if (alphaTab.BrowserUiFacade) {
+			// @ts-ignore
+			console.log("alphaTab.BrowserUiFacade.prototype exists:", !!alphaTab.BrowserUiFacade.prototype);
+			if (alphaTab.BrowserUiFacade.prototype) {
+				// @ts-ignore
+				console.log("typeof .createStyleElements:", typeof alphaTab.BrowserUiFacade.prototype.createStyleElements);
+			}
+		}
+		console.log("%c--- END DIAGNOSING ---", "color: orange; font-weight: bold;");
+
+		// @ts-ignore
+		if (alphaTab.BrowserUiFacade && alphaTab.BrowserUiFacade.prototype && typeof alphaTab.BrowserUiFacade.prototype.createStyleElements === 'function') {
+			// @ts-ignore
+			const originalBrowserUiFacade_createStyleElements = alphaTab.BrowserUiFacade.prototype.createStyleElements;
+			// @ts-ignore
+			alphaTab.BrowserUiFacade.prototype.createStyleElements = function(settingsParam: alphaTab.Settings) {
+				console.warn("[AlphaTabPatcher] Intercepting BrowserUiFacade.prototype.createStyleElements");
+
+				// 1. 调用原始的共享样式创建
+				// @ts-ignore
+				const rootDoc = this.rootContainer?.element?.ownerDocument;
+				if (rootDoc && alphaTab.BrowserUiFacade.createSharedStyleElement) {
 					// @ts-ignore
-					if (this._failCounterId) window.clearInterval(this._failCounterId);
-					(this.fontLoaded as alphaTab.EventEmitterOfT<string>).trigger(familyToCheck);
-					return Promise.resolve();
+					alphaTab.BrowserUiFacade.createSharedStyleElement(rootDoc);
+					console.log("[AlphaTabPatcher] Called original BrowserUiFacade.createSharedStyleElement");
+				} else {
+					console.warn("[AlphaTabPatcher] Could not call original BrowserUiFacade.createSharedStyleElement. Shared styles might be missing.");
 				}
-				console.log(`[AlphaTabPatcher] Allowing original checkForFontAvailability for: ${familyToCheck}`);
-				return originalCheckForFontAvailability.apply(this, arguments);
+
+				// 2. 跳过原始方法中关于 SMuFL 字体的复杂处理
+				console.log("[AlphaTabPatcher] Skipped AlphaTab's internal SMuFL font style creation and checker registration.");
+
+				// 3. 设置 smuflFont 为我们手动注入的字体信息
+				// @ts-ignore
+				const facadeApiSettings = this._api?.settings ?? settingsParam;
+				if (facadeApiSettings?.display?.resources) {
+					// @ts-ignore
+					const res = facadeApiSettings.display.resources;
+					if (!res.smuflFont || typeof res.smuflFont !== 'object') {
+						// @ts-ignore
+						res.smuflFont = {};
+					}
+					// @ts-ignore
+					res.smuflFont.families = ['Bravura', 'alphaTab'];
+					// @ts-ignore
+					res.smuflFont.size = alphaTab.Environment.MusicFontSize;
+					// @ts-ignore
+					res.smuflFont.style = alphaTab.model.FontStyle?.Plain ?? 0;
+					// @ts-ignore
+					res.smuflFont.weight = alphaTab.model.FontWeight?.Regular ?? 0;
+					console.log("[AlphaTabPatcher] Ensured api.settings.display.resources.smuflFont uses families:",
+						// @ts-ignore
+						res.smuflFont.families);
+				} else {
+					console.error("[AlphaTabPatcher] Could not access api.settings.display.resources in patched createStyleElements.");
+				}
 			};
-			console.log("[AlphaTabManager] Patched FontLoadingChecker.prototype.checkForFontAvailability");
+			console.log("[AlphaTabManager] Successfully Patched BrowserUiFacade.prototype.createStyleElements");
+		} else {
+			console.error("[AlphaTabManager] FAILED to patch BrowserUiFacade.createStyleElements.");
 		}
 		// ----------------------------------------------------------
 
@@ -352,40 +404,16 @@ export class AlphaTabManager {
 		if (!this.api) return;
 		this.api.error?.on?.(this.eventHandlers.onError!);
 
-		// --------- 修正 Font 构造问题 ---------
 		this.api.renderStarted?.on?.(() => {
-			if (this.api && this.api.settings?.display?.resources) {
+			if (this.api?.settings?.display?.resources?.smuflFont) {
 				// @ts-ignore
-				const apiResources = this.api.settings.display.resources;
-				if (!apiResources.smuflFont || typeof apiResources.smuflFont !== 'object') {
-					console.warn("[AlphaTabManager] renderStarted: settings.display.resources.smuflFont was not an object or undefined. This is unexpected as AlphaTab should have set it.");
-					// @ts-ignore
-					apiResources.smuflFont = {};
+				const musicFontInUse = this.api.settings.display.resources.smuflFont;
+				console.log(`[AlphaTabManager] renderStarted: Music font in use by API settings: families=${JSON.stringify(musicFontInUse.families)}, size=${musicFontInUse.size}`);
+				if (!musicFontInUse.families?.includes('Bravura') && !musicFontInUse.families?.includes('alphaTab')) {
+					console.warn("[AlphaTabManager] renderStarted: Music font families do not seem to be correctly set to 'Bravura' or 'alphaTab'!", musicFontInUse.families);
 				}
-				const currentMusicFont = apiResources.smuflFont;
-				const desiredFamilies = ['Bravura', 'alphaTab'];
-				let needsOverride = true;
-				// @ts-ignore
-				if (currentMusicFont && currentMusicFont.families && currentMusicFont.families.length > 0) {
-					// @ts-ignore
-					if (desiredFamilies.some(df => currentMusicFont.families.includes(df))) {
-						// @ts-ignore
-						console.log(`[AlphaTabManager] renderStarted: smuflFont.families (${JSON.stringify(currentMusicFont.families)}) already includes a desired family. No override needed.`);
-						needsOverride = false;
-					}
-				}
-				if (needsOverride) {
-					// @ts-ignore
-					console.log(`[AlphaTabManager] renderStarted: Overriding smuflFont.families from ${JSON.stringify(currentMusicFont?.families)} to ${JSON.stringify(desiredFamilies)}.`);
-					// @ts-ignore
-					currentMusicFont.families = desiredFamilies;
-					// @ts-ignore
-					currentMusicFont.size = alphaTab.Environment.MusicFontSize;
-					// @ts-ignore
-					currentMusicFont.style = alphaTab.model.FontStyle?.Plain ?? 0;
-					// @ts-ignore
-					currentMusicFont.weight = alphaTab.model.FontWeight?.Regular ?? 0;
-				}
+			} else {
+				console.warn("[AlphaTabManager] renderStarted: api.settings.display.resources.smuflFont is not available or not an object.");
 			}
 			this.eventHandlers.onRenderStarted?.();
 		});
