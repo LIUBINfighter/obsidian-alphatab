@@ -129,17 +129,9 @@ export class AlphaTabManager {
 		);
 
 		// 1. Font Directory URL
-		// IMPORTANT: Ensure this path correctly points to your font asset directory within the plugin package.
-		// Example: if fonts are in 'your-plugin-id/assets/alphatab/font/'
-		const fontAssetDirSuffix = "/assets/alphatab/font/";
+		const fontAssetDirSuffix = "/assets/alphatab/font/"; // 保持你原来的正确路径
 		const fontAssetObsidianPath = `${pluginManifestDir}${fontAssetDirSuffix}`;
 		try {
-			// Check if the directory path (as Obsidian sees it) seems valid before getting resource path
-			// Note: getResourcePath doesn't inherently validate existence for directories in all cases,
-			// but it's good practice to log the intended path.
-			console.log(
-				`[AlphaTabManager] Attempting to get resource path for font directory: ${fontAssetObsidianPath}`
-			);
 			const fontDirectoryURL = this.app.vault.adapter.getResourcePath(
 				fontAssetObsidianPath
 			);
@@ -157,20 +149,39 @@ export class AlphaTabManager {
 			});
 		}
 
+		// --- START: 新增 Main Script File 检查 ---
+		const mainScriptFileSuffix = "/assets/alphatab/alphatab.js"; // 按实际文件名调整
+		const mainScriptAssetObsidianPath = pluginManifestDir + mainScriptFileSuffix;
+		if (await this.app.vault.adapter.exists(mainScriptAssetObsidianPath)) {
+			const mainScriptURL = this.app.vault.adapter.getResourcePath(mainScriptAssetObsidianPath);
+			this.settings.core.scriptFile = mainScriptURL;
+			console.log(`[AlphaTabManager] Settings: core.scriptFile = ${mainScriptURL}`);
+		} else {
+			this.settings.core.scriptFile = null;
+			const scriptFileErrorMsg = `[AlphaTabManager] CRITICAL: Main AlphaTab script file not found at '${mainScriptAssetObsidianPath}'. Worker initialization will likely fail.`;
+			console.error(scriptFileErrorMsg);
+			this.eventHandlers.onError?.({ message: `AlphaTab主脚本文件未找到: ${mainScriptAssetObsidianPath}，WebWorker可能无法启动。` });
+			// 可选：this.settings.core.useWorkers = false;
+		}
+		// --- END: 新增 Main Script File 检查 ---
+
 		// 2. Worker File URL
-		// IMPORTANT: Ensure 'alphaTab.worker.mjs' (or your worker's name) is at this location.
-		// Example: 'your-plugin-id/assets/alphatab/worker/alphaTab.worker.js'
 		const workerFileSuffix = "/assets/alphatab/alphaTab.worker.mjs";
 		const workerAssetObsidianPath = pluginManifestDir + workerFileSuffix;
 		if (await this.app.vault.adapter.exists(workerAssetObsidianPath)) {
-			const workerFileURL = this.app.vault.adapter.getResourcePath(
-				workerAssetObsidianPath
-			);
-			this.settings.core.workerFile = workerFileURL;
-			this.settings.core.useWorkers = true;
-			console.log(
-				`[AlphaTabManager] Settings: core.workerFile = ${workerFileURL}, useWorkers = true`
-			);
+			if (this.settings.core.scriptFile) {
+				const workerFileURL = this.app.vault.adapter.getResourcePath(
+					workerAssetObsidianPath
+				);
+				this.settings.core.workerFile = workerFileURL;
+				this.settings.core.useWorkers = true;
+				console.log(
+					`[AlphaTabManager] Settings: core.workerFile = ${workerFileURL}, useWorkers = true`
+				);
+			} else {
+				this.settings.core.useWorkers = false;
+				console.warn(`[AlphaTabManager] Main script file for AlphaTab not found. Disabling WebWorkers even if worker file exists.`);
+			}
 		} else {
 			this.settings.core.useWorkers = false;
 			console.warn(
@@ -178,38 +189,23 @@ export class AlphaTabManager {
 			);
 		}
 
-		// 3. Main AlphaTab Script File URL (potentially needed by the worker)
-		// This is if your worker needs to load the main alphatab.js script and it's not bundled with the worker.
-		// Example: 'your-plugin-id/alphatab.min.js' (if you have such a file)
-		// const mainScriptFileSuffix = 'alphatab.min.js'; // Adjust if you have a standalone alphatab lib
-		// const mainScriptAssetObsidianPath = pluginManifestDir + mainScriptFileSuffix;
-		// if (await this.app.vault.adapter.exists(mainScriptAssetObsidianPath)) {
-		//     const mainScriptURL = this.app.vault.adapter.getResourcePath(mainScriptAssetObsidianPath);
-		//     this.settings.core.scriptFile = mainScriptURL;
-		//     console.log(`[AlphaTabManager] Settings: core.scriptFile = ${mainScriptURL}`);
-		// } else {
-		//     this.settings.core.scriptFile = null;
-		//     console.log(`[AlphaTabManager] Main script file for worker not found at '${mainScriptAssetObsidianPath}'. Setting scriptFile to null.`);
-		// }
-		// Often, if AlphaTab is bundled via ES Modules, the worker might be self-contained or locate the main module differently.
-		// Start with null unless you specifically know the worker needs this path to a standalone AlphaTab JS file.
-		this.settings.core.scriptFile = null;
-
 		// 4. SoundFont URL
-		// IMPORTANT: Replace 'your-actual-soundfont.sf2' with the real filename.
-		// Example: 'your-plugin-id/assets/alphatab/soundfont/your-actual-soundfont.sf2'
-		const soundFontFileSuffix = "/assets/alphatab/soundfont/sonivox.sf2"; // <<< REPLACE with your actual SoundFont filename
-		const soundFontAssetObsidianPath =
-			pluginManifestDir + soundFontFileSuffix;
+		const soundFontFileSuffix = "/assets/alphatab/soundfont/sonivox.sf2"; // 按实际文件名调整
+		const soundFontAssetObsidianPath = pluginManifestDir + soundFontFileSuffix;
 		if (await this.app.vault.adapter.exists(soundFontAssetObsidianPath)) {
-			const soundFontURL = this.app.vault.adapter.getResourcePath(
-				soundFontAssetObsidianPath
-			);
-			this.settings.player.soundFont = soundFontURL;
-			this.settings.player.enablePlayer = true;
-			console.log(
-				`[AlphaTabManager] Settings: player.soundFont = ${soundFontURL}, enablePlayer = true`
-			);
+			if (this.settings.core.useWorkers) {
+				const soundFontURL = this.app.vault.adapter.getResourcePath(
+					soundFontAssetObsidianPath
+				);
+				this.settings.player.soundFont = soundFontURL;
+				this.settings.player.enablePlayer = true;
+				console.log(
+					`[AlphaTabManager] Settings: player.soundFont = ${soundFontURL}, enablePlayer = true`
+				);
+			} else {
+				this.settings.player.enablePlayer = false;
+				console.warn(`[AlphaTabManager] WebWorkers are disabled, so SoundFont player is also disabled.`);
+			}
 		} else {
 			this.settings.player.enablePlayer = false;
 			console.warn(
