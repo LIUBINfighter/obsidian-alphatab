@@ -33,9 +33,7 @@
 
 /* Main AlphaTab rendering area */
 .alphatab-obsidian-plugin .at-main {
-    min-width: 100%; /* Ensure it tries to fill viewport */
-    width: fit-content; /* Allow it to expand for horizontal scores if needed */
-    margin: 0 auto; /* Center content if viewport is wider */
+    width: 100%; /* Ensure it fills the viewport horizontally */
 }
 
 

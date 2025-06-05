@@ -85,6 +85,19 @@ export class TabView extends FileView {
 		);
 		this.uiManager.showLoadingOverlay("正在初始化 AlphaTab..."); // "Initializing AlphaTab..."
 
+		// 修复 mainElement 尺寸问题
+		if (this.uiManager.atMainRef) {
+			const mainEl = this.uiManager.atMainRef;
+			if (
+				mainEl.clientWidth === 0 ||
+				mainEl.clientHeight === 0
+			) {
+				// 设置默认宽高，防止 AlphaTab 渲染失败
+				mainEl.style.minWidth = mainEl.style.minWidth || "300px";
+				mainEl.style.minHeight = mainEl.style.minHeight || "150px";
+			}
+		}
+
 		// 2. 初始化 AlphaTab 管理器
 		const managerOptions: AlphaTabManagerOptions = {
 			pluginInstance: this.pluginInstance,
