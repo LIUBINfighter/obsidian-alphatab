@@ -84,9 +84,9 @@ export class AlphaTabManager {
 		console.log("[AlphaTabManager] New alphaTab.Settings() created.");
 
 		this.settings.core.engine = "svg";
-		this.settings.core.enableLazyLoading = true; // 考虑在调试时暂时设为 false，简化流程
-		this.settings.core.useWorkers = false; // 保持 false，避免 worker 的复杂性
-		this.settings.player.enablePlayer = false; // 如果不需要播放，保持 false
+		this.settings.core.enableLazyLoading = true;
+		this.settings.core.useWorkers = false;
+		this.settings.player.enablePlayer = false;
 
 		console.log("[AlphaTabManager] Initial core settings:", {
 			engine: this.settings.core.engine,
@@ -97,15 +97,6 @@ export class AlphaTabManager {
 
 		// --- 字体加载策略 ---
 		console.log("[AlphaTabManager] --- Font Loading Strategy START ---");
-		this.settings.core.fontDirectory = null;
-		this.settings.core.scriptFile = null;
-		console.log(
-			"[AlphaTabManager] Settings: fontDirectory and scriptFile explicitly set to null."
-		);
-
-		const fontDataUrls: Record<string, string> = {};
-		let essentialFontDataLoaded = false;
-
 		const pluginRootPath = this.pluginInstance.actualPluginDir;
 		console.log(
 			`[AlphaTabManager] pluginInstance.actualPluginDir: ${pluginRootPath}`
@@ -136,6 +127,24 @@ export class AlphaTabManager {
 				`[AlphaTabManager] WARNING: fontAssetsPath does not exist: ${fontAssetsPath}`
 			);
 		}
+
+		// ⭐⭐⭐ 核心改动：直接设置 fontDirectory ⭐⭐⭐
+		const fontAssetsFullPath = `file:///${fontAssetsPath.replace(
+			/\\/g,
+			"/"
+		)}/`;
+		this.settings.core.fontDirectory = fontAssetsFullPath;
+		console.log(
+			`[AlphaTabManager] Settings: Explicitly set settings.core.fontDirectory to: ${this.settings.core.fontDirectory}`
+		);
+
+		this.settings.core.scriptFile = null;
+		console.log(
+			"[AlphaTabManager] Settings: scriptFile explicitly set to null."
+		);
+
+		const fontDataUrls: Record<string, string> = {};
+		let essentialFontDataLoaded = false;
 
 		let primaryFontLoaded = false;
 		const fontPreferences = [
@@ -214,14 +223,12 @@ export class AlphaTabManager {
 		}
 
 		if (primaryFontLoaded && metadataLoaded) {
-			this.settings.core.smuflFontSources = fontDataUrls;
+			// this.settings.core.smuflFontSources = fontDataUrls;
 			essentialFontDataLoaded = true;
 			console.log(
 				"[AlphaTabManager] smuflFontSources populated. Keys:",
 				Object.keys(fontDataUrls)
 			);
-			// 避免打印整个 data:URL，因为它太长了
-			// console.log("[AlphaTabManager] smuflFontSources content (keys only):", Object.keys(this.settings.core.smuflFontSources));
 		} else {
 			const missing = `${
 				!primaryFontLoaded ? "Primary font (WOFF2/WOFF)" : ""
@@ -235,25 +242,9 @@ export class AlphaTabManager {
 			return;
 		}
 
-		// @ts-ignore
-		let originalAlphaTabFontGlobal: string | undefined =
-			globalThis.ALPHATAB_FONT;
-		const pseudoFontUrlForStyleCreation = `file:///${fontAssetsPath.replace(
-			/\\/g,
-			"/"
-		)}/`;
 		console.log(
-			`[AlphaTabManager] originalAlphaTabFontGlobal before set: ${originalAlphaTabFontGlobal}`
+			"[AlphaTabManager] --- Font Loading Strategy END (globalThis.ALPHATAB_FONT modification removed/commented) ---"
 		);
-		console.log(
-			`[AlphaTabManager] pseudoFontUrlForStyleCreation to be set: ${pseudoFontUrlForStyleCreation}`
-		);
-		// @ts-ignore
-		globalThis.ALPHATAB_FONT = pseudoFontUrlForStyleCreation;
-		console.log(
-			`[AlphaTabManager] Temporarily set globalThis.ALPHATAB_FONT = "${globalThis.ALPHATAB_FONT}"`
-		);
-		console.log("[AlphaTabManager] --- Font Loading Strategy END ---");
 
 		this.settings.display.scale = 0.8;
 		this.settings.display.layoutMode = LayoutMode.Page;
@@ -262,7 +253,7 @@ export class AlphaTabManager {
 		this.settings.player.scrollElement = this.viewportElement;
 		this.settings.player.scrollOffsetY = -30;
 
-		// ... (themeColors logic, 保持不变)
+		// ...existing code...
 
 		let originalProcess: any, originalModule: any;
 		let modifiedGlobals = false;
@@ -311,10 +302,9 @@ export class AlphaTabManager {
 							v &&
 							typeof v === "object"
 						) {
-							return Object.keys(v); // 只打印 smuflFontSources 的键
+							return Object.keys(v);
 						}
 						if (v instanceof HTMLElement) {
-							// 避免循环引用和过大对象
 							return `HTMLElement<${v.tagName}>`;
 						}
 						return v;
@@ -322,7 +312,6 @@ export class AlphaTabManager {
 					2
 				)
 			);
-			// 记录一下 settings 对象中几个关键字体相关的值
 			console.log("[AlphaTabManager] Key settings before API init:", {
 				"settings.core.fontDirectory": this.settings.core.fontDirectory,
 				"settings.core.scriptFile": this.settings.core.scriptFile,
@@ -330,7 +319,6 @@ export class AlphaTabManager {
 					.smuflFontSources
 					? Object.keys(this.settings.core.smuflFontSources)
 					: null,
-				"globalThis.ALPHATAB_FONT": globalThis.ALPHATAB_FONT,
 			});
 
 			this.api = new alphaTab.AlphaTabApi(
@@ -345,7 +333,7 @@ export class AlphaTabManager {
 			console.error(
 				"[AlphaTabManager] FAILED to initialize AlphaTab API. Error:",
 				e.message,
-				e.stack // 确保打印堆栈信息
+				e.stack
 			);
 			this.eventHandlers.onError?.({
 				message: `AlphaTab API 初始化失败: ${e.message}`,
@@ -363,27 +351,6 @@ export class AlphaTabManager {
 					globalThis.module = originalModule;
 					console.log("[AlphaTabManager] Restored 'module' global.");
 				}
-			}
-			// @ts-ignore
-			if (globalThis.ALPHATAB_FONT === pseudoFontUrlForStyleCreation) {
-				if (originalAlphaTabFontGlobal !== undefined) {
-					// @ts-ignore
-					globalThis.ALPHATAB_FONT = originalAlphaTabFontGlobal;
-					console.log(
-						`[AlphaTabManager] Restored globalThis.ALPHATAB_FONT to: ${originalAlphaTabFontGlobal}`
-					);
-				} else {
-					// @ts-ignore
-					delete globalThis.ALPHATAB_FONT;
-					console.log(
-						"[AlphaTabManager] Deleted globalThis.ALPHATAB_FONT as it was originally undefined."
-					);
-				}
-			} else {
-				// @ts-ignore
-				console.warn(
-					`[AlphaTabManager] globalThis.ALPHATAB_FONT was not as expected in finally. Current: ${globalThis.ALPHATAB_FONT}, Expected: ${pseudoFontUrlForStyleCreation}`
-				);
 			}
 			console.log(
 				"[AlphaTabManager] --- Environment Hacking & API Instantiation END ---"
