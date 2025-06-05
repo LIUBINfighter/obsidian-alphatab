@@ -166,7 +166,8 @@ export class AlphaTabManager {
 		if (fontLoaded) {
 			// 按照 AlphaTab 文档设置字体数据
 			this.settings.core.fontDirectory = null;
-
+            // this.settings.core.fontDirectory = "/font/"; // 或者 "./fonts/" 或 "/" 或插件的某个虚拟子路径
+			
 			// 直接使用 JS 对象，而非 Map
 			this.settings.core.smuflFontSources = fontDataUrls;
 			fontLoadMode = "dataurl";
@@ -180,6 +181,9 @@ export class AlphaTabManager {
 				fontDirectory: this.settings.core.fontDirectory,
 				scriptFile: this.settings.core.scriptFile,
 			});
+			
+			// 手动注入@font-face规则，取代AlphaTab的自动注入
+			this.injectBravuraFontFace(fontDataUrls);
 		} else {
 			console.error(
 				"[AlphaTabManager] No Bravura font files found for data:URL injection."
@@ -222,6 +226,38 @@ export class AlphaTabManager {
 				console.warn(
 					"[AlphaTabManager] alphaTab.Environment or WebPlatform not available for overriding."
 				);
+			}
+
+			// Monkey Patch AlphaTab的字体样式注入函数，阻止自动添加@font-face
+			if (alphaTab.WebPlatform && alphaTab.WebPlatform.prototype) {
+				// 保存原始方法引用
+				const originalCreateStyleElement = alphaTab.WebPlatform.prototype.createStyleElement;
+				
+				// 替换方法
+				alphaTab.WebPlatform.prototype.createStyleElement = function(
+					idOrClass: string, 
+					styles?: string
+				) {
+					// 检查是否为Bravura字体相关的样式
+					if (styles && 
+						(styles.includes("@font-face") && 
+						(styles.includes("Bravura") || styles.includes("alphatab")))) {
+						console.log("[AlphaTabManager] Suppressed AlphaTab font style injection:", 
+							idOrClass?.substring(0, 30) + "...");
+						
+						// 返回一个虚拟元素，不添加到DOM
+						const dummy = document.createElement("style");
+						dummy.setAttribute("data-alphatab-suppressed", "true");
+						return dummy;
+					}
+					
+					// 其他样式正常处理
+					return originalCreateStyleElement.apply(this, arguments);
+				};
+				
+				console.log("[AlphaTabManager] Monkey patched AlphaTab's createStyleElement");
+			} else {
+				console.warn("[AlphaTabManager] Could not patch AlphaTab WebPlatform - font injection may still occur automatically");
 			}
 
 			this.api = new alphaTab.AlphaTabApi(
@@ -367,5 +403,54 @@ export class AlphaTabManager {
 		this.score = null;
 		this.renderTracks = [];
 		console.log("[AlphaTabManager] AlphaTab API destroyed.");
+	}
+
+	/**
+	 * 手动将Bravura字体的@font-face规则注入到文档中
+	 */
+	private injectBravuraFontFace(fontDataUrls: Record<string, string>) {
+		try {
+			// 创建字体CSS
+			let fontFaceCss = `@font-face {
+				font-family: 'Bravura';
+				font-style: normal;
+				font-weight: 400;
+				src: `;
+				
+			const sources = [];
+			
+			// 添加各种格式的字体源
+			if (fontDataUrls["woff2"]) {
+				sources.push(`url('${fontDataUrls["woff2"]}') format('woff2')`);
+			}
+			if (fontDataUrls["woff"]) {
+				sources.push(`url('${fontDataUrls["woff"]}') format('woff')`);
+			}
+			if (fontDataUrls["otf"]) {
+				sources.push(`url('${fontDataUrls["otf"]}') format('opentype')`);
+			}
+			if (fontDataUrls["eot"]) {
+				sources.push(`url('${fontDataUrls["eot"]}') format('embedded-opentype')`);
+			}
+			if (fontDataUrls["svg"]) {
+				sources.push(`url('${fontDataUrls["svg"]}') format('svg')`);
+			}
+			
+			// 完成CSS
+			fontFaceCss += sources.join(", ");
+			fontFaceCss += ";\n}\n";
+			
+			// 创建并附加样式元素
+			const styleElement = document.createElement("style");
+			styleElement.setAttribute("id", "alphatab-bravura-font");
+			styleElement.setAttribute("type", "text/css");
+			styleElement.textContent = fontFaceCss;
+			document.head.appendChild(styleElement);
+			
+			console.log("[AlphaTabManager] Manually injected Bravura @font-face with sources:", 
+				Object.keys(fontDataUrls).filter(key => sources.some(s => s.includes(key))));
+		} catch (err) {
+			console.error("[AlphaTabManager] Error injecting Bravura font face:", err);
+		}
 	}
 }
