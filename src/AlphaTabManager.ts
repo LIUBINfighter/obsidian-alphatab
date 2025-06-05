@@ -9,28 +9,25 @@ import {
 	type Settings,
 	type Score,
 	type Track,
-	WebPlatform, // Keep this for environment override
+	WebPlatform,
+	LogLevel, // Import LogLevel
 } from "@coderline/alphatab";
-// REMOVE: fs and path are no longer needed for AlphaTab's resource loading via URL
-// import * as fs from "fs";
-// import * as path from "path";
 import { Notice, TFile, App } from "obsidian";
 
 export interface AlphaTabManagerOptions {
-	pluginInstance: any; // Your main plugin class instance
+	pluginInstance: any;
 	app: App;
-	mainElement: HTMLElement; // The element where AlphaTab will render
-	viewportElement: HTMLElement; // Element for player scroll, if any
+	mainElement: HTMLElement;
+	viewportElement: HTMLElement;
 	onError?: (args: any) => void;
-	onRenderStarted?: (isReload: boolean, canRender: boolean) => void; // Adjusted signature
+	onRenderStarted?: (isReload: boolean, canRender: boolean) => void;
 	onRenderFinished?: () => void;
 	onScoreLoaded?: (score: Score | null) => void;
 	onPlayerStateChanged?: (args: any) => void;
-	// Add other specific event handlers if needed
-	onFontLoaded?: (name: string, family: string) => void;
-	onSoundFontLoaded?: () => void;
-	onPlayerReady?: () => void;
-	onReady?: () => void;
+	onFontLoaded?: (name: string, family: string) => void; // For external handler
+	onSoundFontLoaded?: () => void; // For external handler
+	onPlayerReady?: () => void; // For external handler
+	onReady?: () => void; // For external handler
 }
 
 export class AlphaTabManager {
@@ -53,18 +50,19 @@ export class AlphaTabManager {
 		this.viewportElement = options.viewportElement;
 		this.eventHandlers = options;
 
-		if (
-			!this.pluginInstance ||
-			!this.pluginInstance.manifest ||
-			!this.pluginInstance.manifest.dir
-		) {
+		// @ts-ignore
+		console.log(
+			`[AlphaTabManager] Initializing with AlphaTab library version: ${
+				alphaTab.version || "unknown"
+			}`
+		);
+		if (!this.pluginInstance?.manifest?.dir) {
 			const errorMsg =
-				"[AlphaTabManager] CRITICAL - pluginInstance.manifest.dir is not available. Cannot construct resource paths.";
+				"[AlphaTabManager] CRITICAL - pluginInstance.manifest.dir is not available.";
 			console.error(errorMsg);
 			this.eventHandlers.onError?.({
 				message: "插件清单信息不完整，无法构建资源路径。",
 			});
-			// Consider throwing an error here to stop further execution if this is fatal
 		}
 	}
 
@@ -73,22 +71,20 @@ export class AlphaTabManager {
 		if (this.api && this.settings) {
 			const themeColors = isDark
 				? {
-						scoreColor: "rgba(236, 236, 236, 1)", // Example: Lighter score elements on dark background
+						scoreColor: "rgba(236, 236, 236, 1)",
 						selectionColor: "rgba(80, 130, 180, 0.7)",
 						barSeparatorColor: "rgba(200, 200, 200, 0.7)",
 						staffLineColor: "rgba(200, 200, 200, 1)",
-						// ... other dark theme specific colors from AlphaTab docs ...
 				  }
 				: {
 						scoreColor: "rgba(0, 0, 0, 1)",
 						selectionColor: "rgba(0, 120, 255, 0.5)",
 						barSeparatorColor: "rgba(0, 0, 0, 0.2)",
 						staffLineColor: "rgba(0, 0, 0, 1)",
-						// ... other light theme specific colors ...
 				  };
 			Object.assign(this.settings.display.resources, themeColors);
-			this.api.settings = this.settings; // Re-assign settings
-			this.api.render(); // Re-render with new colors
+			this.api.settings = this.settings;
+			this.api.render();
 		}
 	}
 
@@ -106,31 +102,63 @@ export class AlphaTabManager {
 		}
 		this.score = null;
 		this.renderTracks = [];
-
 		this.renderWidth = Math.max(this.mainElement?.clientWidth || 800, 300);
 
 		this.settings = new alphaTab.Settings();
-		this.settings.core.engine = "svg"; // Or "html5" (canvas)
+		this.settings.core.engine = "svg";
 		this.settings.core.enableLazyLoading = true;
+		this.settings.core.logLevel = LogLevel.Debug; // Enable AlphaTab's verbose logging
 
-		// --- NEW: Construct resource URLs using Obsidian API ---
+		// --- Configuration for Non-Worker Font Debugging ---
+		this.settings.core.useWorkers = false; // Force disable workers for font debugging
+		this.settings.core.workerFile = null;
+		this.settings.player.enablePlayer = false; // Disable player as it often relies on workers
+		this.settings.player.soundFont = null;
+		console.log(
+			"[AlphaTabManager] FONT DEBUG MODE: Workers and Player are forcibly disabled."
+		);
+		// --- End Configuration ---
+
 		const pluginManifestDir = this.pluginInstance.manifest.dir;
 		if (!pluginManifestDir) {
-			const criticalErrorMsg =
-				"[AlphaTabManager] CRITICAL - pluginInstance.manifest.dir is undefined. Cannot load resources.";
-			console.error(criticalErrorMsg);
+			console.error(
+				"[AlphaTabManager] CRITICAL - pluginInstance.manifest.dir is undefined."
+			);
 			this.eventHandlers.onError?.({
 				message: "无法获取插件目录，资源加载将失败。",
 			});
-			return; // Stop further execution
+			return;
 		}
 		console.log(
 			`[AlphaTabManager] Plugin manifest directory: ${pluginManifestDir}`
 		);
 
-		// 1. Font Directory URL
-		const fontAssetDirSuffix = "/assets/alphatab/font/"; // 保持你原来的正确路径
+		// 1. Main AlphaTab Script File URL (core.scriptFile)
+		// Use the UMD version 'alphatab.js' for broader compatibility in non-module worker scenarios,
+		// or if AlphaTab uses it to determine a base path for other non-font resources.
+		const mainScriptFileSuffix = "/assets/alphatab/alphatab.js"; // Assuming UMD version
+		const mainScriptAssetObsidianPath =
+			pluginManifestDir + mainScriptFileSuffix;
+		if (await this.app.vault.adapter.exists(mainScriptAssetObsidianPath)) {
+			const mainScriptURL = this.app.vault.adapter.getResourcePath(
+				mainScriptAssetObsidianPath
+			);
+			this.settings.core.scriptFile = mainScriptURL;
+			console.log(
+				`[AlphaTabManager] Settings: core.scriptFile = ${mainScriptURL}`
+			);
+		} else {
+			this.settings.core.scriptFile = null;
+			console.error(
+				`[AlphaTabManager] Main AlphaTab script (alphatab.js) NOT FOUND at '${mainScriptAssetObsidianPath}'. This might affect resource discovery.`
+			);
+		}
+
+		// 2. Font Directory URL (core.fontDirectory)
+		const fontAssetDirSuffix = "/assets/alphatab/font/";
 		const fontAssetObsidianPath = `${pluginManifestDir}${fontAssetDirSuffix}`;
+		// Assuming the path itself is valid as per your file structure.
+		// getResourcePath doesn't validate existence, but Obsidian's loader will later.
 		try {
 			const fontDirectoryURL = this.app.vault.adapter.getResourcePath(
 				fontAssetObsidianPath
@@ -144,73 +172,7 @@ export class AlphaTabManager {
 				`[AlphaTabManager] Error getting resource path for font directory '${fontAssetObsidianPath}':`,
 				e
 			);
-			this.eventHandlers.onError?.({
-				message: `字体目录资源路径获取失败: ${fontAssetObsidianPath}`,
-			});
-		}
-
-		// --- START: 新增 Main Script File 检查 ---
-		const mainScriptFileSuffix = "/assets/alphatab/alphatab.js"; // 按实际文件名调整
-		const mainScriptAssetObsidianPath = pluginManifestDir + mainScriptFileSuffix;
-		if (await this.app.vault.adapter.exists(mainScriptAssetObsidianPath)) {
-			const mainScriptURL = this.app.vault.adapter.getResourcePath(mainScriptAssetObsidianPath);
-			this.settings.core.scriptFile = mainScriptURL;
-			console.log(`[AlphaTabManager] Settings: core.scriptFile = ${mainScriptURL}`);
-		} else {
-			this.settings.core.scriptFile = null;
-			const scriptFileErrorMsg = `[AlphaTabManager] CRITICAL: Main AlphaTab script file not found at '${mainScriptAssetObsidianPath}'. Worker initialization will likely fail.`;
-			console.error(scriptFileErrorMsg);
-			this.eventHandlers.onError?.({ message: `AlphaTab主脚本文件未找到: ${mainScriptAssetObsidianPath}，WebWorker可能无法启动。` });
-			// 可选：this.settings.core.useWorkers = false;
-		}
-		// --- END: 新增 Main Script File 检查 ---
-
-		// 2. Worker File URL
-		const workerFileSuffix = "/assets/alphatab/alphaTab.worker.mjs";
-		const workerAssetObsidianPath = pluginManifestDir + workerFileSuffix;
-		if (await this.app.vault.adapter.exists(workerAssetObsidianPath)) {
-			if (this.settings.core.scriptFile) {
-				const workerFileURL = this.app.vault.adapter.getResourcePath(
-					workerAssetObsidianPath
-				);
-				this.settings.core.workerFile = workerFileURL;
-				this.settings.core.useWorkers = true;
-				console.log(
-					`[AlphaTabManager] Settings: core.workerFile = ${workerFileURL}, useWorkers = true`
-				);
-			} else {
-				this.settings.core.useWorkers = false;
-				console.warn(`[AlphaTabManager] Main script file for AlphaTab not found. Disabling WebWorkers even if worker file exists.`);
-			}
-		} else {
-			this.settings.core.useWorkers = false;
-			console.warn(
-				`[AlphaTabManager] Worker file not found at '${workerAssetObsidianPath}'. Disabling workers.`
-			);
-		}
-
-		// 4. SoundFont URL
-		const soundFontFileSuffix = "/assets/alphatab/soundfont/sonivox.sf2"; // 按实际文件名调整
-		const soundFontAssetObsidianPath = pluginManifestDir + soundFontFileSuffix;
-		if (await this.app.vault.adapter.exists(soundFontAssetObsidianPath)) {
-			if (this.settings.core.useWorkers) {
-				const soundFontURL = this.app.vault.adapter.getResourcePath(
-					soundFontAssetObsidianPath
-				);
-				this.settings.player.soundFont = soundFontURL;
-				this.settings.player.enablePlayer = true;
-				console.log(
-					`[AlphaTabManager] Settings: player.soundFont = ${soundFontURL}, enablePlayer = true`
-				);
-			} else {
-				this.settings.player.enablePlayer = false;
-				console.warn(`[AlphaTabManager] WebWorkers are disabled, so SoundFont player is also disabled.`);
-			}
-		} else {
-			this.settings.player.enablePlayer = false;
-			console.warn(
-				`[AlphaTabManager] SoundFont file not found at '${soundFontAssetObsidianPath}'. Disabling player.`
-			);
+			this.settings.core.fontDirectory = null; // Fallback
 		}
 
 		// CRITICAL: Ensure smuflFontSources is null to force fontDirectory usage.
@@ -218,13 +180,9 @@ export class AlphaTabManager {
 
 		// Display and Player settings
 		this.settings.display.scale = 0.8;
-		this.settings.display.layoutMode = LayoutMode.Page; // Or Horizontal
-		this.settings.player.enableCursor = true;
-		this.settings.player.scrollMode = ScrollMode.Continuous; // Or Off, Page
-		this.settings.player.scrollElement = this.viewportElement; // Ensure this is a valid scrollable element
-		this.settings.player.scrollOffsetY = -30; // Adjust as needed
+		this.settings.display.layoutMode = LayoutMode.Page;
+		// ... other display/player settings if needed for non-player mode
 
-		// Apply theme colors (initial setup)
 		const initialThemeColors = this.darkMode
 			? {
 					scoreColor: "rgba(236, 236, 236, 1)",
@@ -241,9 +199,9 @@ export class AlphaTabManager {
 		Object.assign(this.settings.display.resources, initialThemeColors);
 
 		console.log(
-			"[AlphaTabManager] Final AlphaTab Settings prepared:",
+			"[AlphaTabManager] Final AlphaTab Settings prepared (Font Debug Mode):",
 			JSON.parse(JSON.stringify(this.settings))
-		); // Deep copy for logging
+		);
 
 		// Environment hack (KEEP THIS SECTION)
 		let originalProcess: any, originalModule: any;
@@ -252,18 +210,15 @@ export class AlphaTabManager {
 			// @ts-ignore
 			if (typeof process !== "undefined") {
 				originalProcess = globalThis.process;
-				// @ts-ignore
 				globalThis.process = undefined;
 				modifiedGlobals = true;
 			}
 			// @ts-ignore
 			if (typeof module !== "undefined") {
 				originalModule = globalThis.module;
-				// @ts-ignore
 				globalThis.module = undefined;
 				modifiedGlobals = true;
 			}
-
 			// @ts-ignore
 			if (alphaTab.Environment && typeof WebPlatform !== "undefined") {
 				// @ts-ignore
@@ -277,53 +232,67 @@ export class AlphaTabManager {
 				);
 			}
 
-			// --- ALL MONKEY PATCHING AND MANUAL FONT INJECTION IS REMOVED ---
-
 			console.log(
-				"[AlphaTabManager] Initializing AlphaTabApi with new settings..."
+				"[AlphaTabManager] Initializing AlphaTabApi (Font Debug Mode)..."
 			);
-			// Ensure the mainElement has dimensions. AlphaTab might not render if container is 0x0.
+
+			// ENSURE mainElement HAS DIMENSIONS IN THE CALLING CODE (e.g., TabView)
 			if (
 				this.mainElement.clientWidth === 0 ||
 				this.mainElement.clientHeight === 0
 			) {
 				console.warn(
-					"[AlphaTabManager] mainElement has zero width or height. AlphaTab might not render correctly. Ensure it's visible and sized."
+					"[AlphaTabManager] mainElement has zero width or height. This MUST be fixed in the calling View. Rendering might fail or be invisible."
 				);
-				// You might want to set a default style if it's not managed elsewhere
-				// this.mainElement.style.width = '100%';
-				// this.mainElement.style.height = '600px'; // A default height
 			}
 
 			this.api = new alphaTab.AlphaTabApi(
 				this.mainElement,
 				this.settings
 			);
-			console.log("[AlphaTabManager] AlphaTabApi instantiated. API object:", this.api);
+			console.log(
+				"[AlphaTabManager] AlphaTabApi instantiated. API object:",
+				this.api
+			);
 
-			// ---- START: 详细检查 API 对象的事件发射器 ----
+			// ---- Detailed check of API event emitters ----
 			if (this.api) {
 				const eventNames = [
-					"error", "renderStarted", "renderFinished", "scoreLoaded",
-					"playerStateChanged", "fontLoaded", "soundFontLoaded",
-					"playerReady", "ready"
+					"error",
+					"renderStarted",
+					"renderFinished",
+					"scoreLoaded",
+					"playerStateChanged",
+					"fontLoaded",
+					"soundFontLoaded",
+					"playerReady",
+					"ready",
 				];
-				console.log("[AlphaTabManager] Checking API event emitters before binding:");
-				eventNames.forEach(eventName => {
+				console.log(
+					"[AlphaTabManager] Checking API event emitters (Font Debug Mode):"
+				);
+				eventNames.forEach((eventName) => {
 					// @ts-ignore
 					const emitter = this.api[eventName];
-					if (emitter && typeof emitter.on === 'function') {
-						console.log(`[AlphaTabManager] ✅ this.api.${eventName} seems OK (has .on method).`);
+					if (emitter && typeof emitter.on === "function") {
+						console.log(
+							`[AlphaTabManager] ✅ this.api.${eventName} seems OK (has .on method).`
+						);
 					} else {
-						console.error(`[AlphaTabManager] ❌ this.api.${eventName} is MISSING or not an event emitter. Value:`, emitter);
+						console.error(
+							`[AlphaTabManager] ❌ this.api.${eventName} is MISSING or not an event emitter. Value:`,
+							emitter
+						);
 					}
 				});
 			} else {
-				console.error("[AlphaTabManager] CRITICAL: this.api is null or undefined AFTER instantiation attempt!");
+				console.error(
+					"[AlphaTabManager] CRITICAL: this.api is null/undefined AFTER instantiation attempt!"
+				);
 			}
-			// ---- END: 详细检查 ----
+			// ---- End check ----
 
-			this.bindEvents(); // Bind all event handlers
+			this.bindEvents();
 		} catch (e: any) {
 			console.error(
 				"[AlphaTabManager] FAILED to initialize AlphaTab API. Error:",
@@ -361,7 +330,6 @@ export class AlphaTabManager {
 			console.log(
 				`[AlphaTabManager] Read ${scoreData.byteLength} bytes for score ${file.name}. Loading into AlphaTab...`
 			);
-			// AlphaTab's load method expects a Uint8Array or similar binary format
 			await this.api.load(new Uint8Array(scoreData));
 			console.log(
 				`[AlphaTabManager] Score loading initiated for ${file.name}. Waiting for scoreLoaded event.`
@@ -381,26 +349,46 @@ export class AlphaTabManager {
 
 	private bindEvents() {
 		if (!this.api) {
-			console.error("[AlphaTabManager] bindEvents called, but this.api is null.");
+			console.error(
+				"[AlphaTabManager] bindEvents called, but this.api is null."
+			);
 			return;
 		}
-		console.log("[AlphaTabManager] Attempting to bind events. API object:", this.api);
+		console.log(
+			"[AlphaTabManager] Attempting to bind events. API object:",
+			this.api
+		);
 
-		const safeBind = (eventName: string, handler?: (...args: any[]) => void) => {
+		const safeBind = (
+			eventName: string,
+			handler?: (...args: any[]) => void
+		) => {
 			// @ts-ignore
 			const emitter = this.api![eventName];
-			if (emitter && typeof emitter.on === 'function') {
+			if (emitter && typeof emitter.on === "function") {
 				if (handler) {
 					emitter.on(handler);
-					console.log(`[AlphaTabManager] Successfully bound handler for '${eventName}'.`);
+					console.log(
+						`[AlphaTabManager] Successfully bound handler for '${eventName}'.`
+					);
 				} else {
 					emitter.on((...args: unknown[]) => {
-						console.log(`[AlphaTabManager] Event '${eventName}' fired with args:`, args);
+						// Default logger
+						console.log(
+							`[AlphaTabManager] Event '${eventName}' fired with args:`,
+							args
+						);
 					});
-					console.log(`[AlphaTabManager] Bound default logger for '${eventName}' (no specific handler provided).`);
+					console.log(
+						`[AlphaTabManager] Bound default logger for '${eventName}'.`
+					);
 				}
 			} else {
-				console.error(`[AlphaTabManager] FAILED to bind event '${eventName}'. Emitter is missing or invalid:`, emitter);
+				// Log error but don't stop other bindings
+				console.error(
+					`[AlphaTabManager] FAILED to bind event '${eventName}'. Emitter is missing or invalid:`,
+					emitter
+				);
 			}
 		};
 
@@ -408,13 +396,13 @@ export class AlphaTabManager {
 		safeBind("renderStarted", this.eventHandlers.onRenderStarted);
 		safeBind("renderFinished", this.eventHandlers.onRenderFinished);
 
-		// scoreLoaded 需要特殊处理
+		// Special handling for scoreLoaded to update internal state
 		// @ts-ignore
 		const scoreLoadedEmitter = this.api!.scoreLoaded;
-		if (scoreLoadedEmitter && typeof scoreLoadedEmitter.on === 'function') {
+		if (scoreLoadedEmitter && typeof scoreLoadedEmitter.on === "function") {
 			scoreLoadedEmitter.on((score: Score | null) => {
 				this.score = score;
-				if (score && score.tracks && score.tracks.length > 0) {
+				if (score?.tracks?.length) {
 					this.renderTracks = [score.tracks[0]];
 				} else {
 					this.renderTracks = [];
@@ -422,21 +410,26 @@ export class AlphaTabManager {
 				console.log(
 					"[AlphaTabManager] Internal scoreLoaded handler. Score:",
 					score ? score.title : "null",
-					"Tracks available:",
+					"Tracks:",
 					score?.tracks?.length
 				);
 				this.eventHandlers.onScoreLoaded?.(score);
 			});
-			console.log(`[AlphaTabManager] Successfully bound handler for 'scoreLoaded'.`);
+			console.log(
+				`[AlphaTabManager] Successfully bound handler for 'scoreLoaded'.`
+			);
 		} else {
-			console.error(`[AlphaTabManager] FAILED to bind event 'scoreLoaded'. Emitter is missing or invalid:`, scoreLoadedEmitter);
+			console.error(
+				`[AlphaTabManager] FAILED to bind event 'scoreLoaded'. Emitter is missing or invalid:`,
+				scoreLoadedEmitter
+			);
 		}
 
 		safeBind("playerStateChanged", this.eventHandlers.onPlayerStateChanged);
-		safeBind("fontLoaded", this.eventHandlers.onFontLoaded);
+		safeBind("fontLoaded", this.eventHandlers.onFontLoaded); // Bind even if initially undefined, to catch if it appears later
 		safeBind("soundFontLoaded", this.eventHandlers.onSoundFontLoaded);
 		safeBind("playerReady", this.eventHandlers.onPlayerReady);
-		safeBind("ready", this.eventHandlers.onReady);
+		safeBind("ready", this.eventHandlers.onReady); // Bind even if initially undefined
 	}
 
 	playPause() {
@@ -447,7 +440,7 @@ export class AlphaTabManager {
 			console.warn(
 				"[AlphaTabManager] Player is not enabled, cannot play/pause."
 			);
-			new Notice("播放器未启用 (可能未找到SoundFont)");
+			new Notice("播放器当前已禁用 (字体调试模式)");
 		}
 	}
 	stop() {
@@ -465,8 +458,6 @@ export class AlphaTabManager {
 		if (!this.api) return;
 		this.renderTracks = tracks;
 		this.api.renderTracks(tracks);
-		// api.render() is usually called automatically after renderTracks or if settings change.
-		// If not, you might need to call this.api.render();
 	}
 
 	public getAllTracks(): Track[] {
@@ -488,9 +479,4 @@ export class AlphaTabManager {
 		this.renderTracks = [];
 		console.log("[AlphaTabManager] AlphaTab API destroyed.");
 	}
-
-	// --- All manual font injection, preloading, and patching methods are REMOVED ---
-	// private injectBravuraFontFace(...) { /* REMOVED */ }
-	// private preloadBravuraFont(...) { /* REMOVED */ }
-	// private tryFindAndPatchFontMethods(...) { /* REMOVED */ }
 }
