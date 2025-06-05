@@ -195,6 +195,18 @@ export class AlphaTabManager {
 			
 			// 手动注入@font-face规则，取代AlphaTab的自动注入
 			this.injectBravuraFontFace(fontDataUrls);
+			
+			// 明确设置音乐字体族名称
+			// @ts-ignore
+			if (!this.settings.display.resources.musicFont) {
+				// @ts-ignore
+				this.settings.display.resources.musicFont = new alphaTab.model.FontSettings();
+			}
+			// @ts-ignore
+			this.settings.display.resources.musicFont.families = ['Bravura', 'alphaTab']; 
+			console.log('[AlphaTabManager] Set settings.display.resources.musicFont.families to:', 
+				// @ts-ignore
+				this.settings.display.resources.musicFont.families);
 		} else {
 			console.error(
 				"[AlphaTabManager] No Bravura font files found for data:URL injection."
