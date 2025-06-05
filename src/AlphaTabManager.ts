@@ -387,15 +387,13 @@ export class AlphaTabManager {
 		console.log("[AlphaTabManager] Attempting to bind events. API object:", this.api);
 
 		const safeBind = (eventName: string, handler?: (...args: any[]) => void) => {
-			// @ts-ignore - 动态访问属性
-			const emitter = this.api![eventName]; // 使用非空断言，因为上面已经检查过 this.api
-			
+			// @ts-ignore
+			const emitter = this.api![eventName];
 			if (emitter && typeof emitter.on === 'function') {
 				if (handler) {
 					emitter.on(handler);
 					console.log(`[AlphaTabManager] Successfully bound handler for '${eventName}'.`);
 				} else {
-					// 如果外部没有提供处理器，我们可以选择绑定一个默认的日志记录器
 					emitter.on((...args: unknown[]) => {
 						console.log(`[AlphaTabManager] Event '${eventName}' fired with args:`, args);
 					});
@@ -406,12 +404,11 @@ export class AlphaTabManager {
 			}
 		};
 
-		// 为AlphaTabManagerOptions中定义的所有事件处理器绑定
 		safeBind("error", this.eventHandlers.onError);
 		safeBind("renderStarted", this.eventHandlers.onRenderStarted);
 		safeBind("renderFinished", this.eventHandlers.onRenderFinished);
-		
-		// scoreLoaded 需要特殊处理来更新内部状态 this.score 和 this.renderTracks
+
+		// scoreLoaded 需要特殊处理
 		// @ts-ignore
 		const scoreLoadedEmitter = this.api!.scoreLoaded;
 		if (scoreLoadedEmitter && typeof scoreLoadedEmitter.on === 'function') {
@@ -428,7 +425,7 @@ export class AlphaTabManager {
 					"Tracks available:",
 					score?.tracks?.length
 				);
-				this.eventHandlers.onScoreLoaded?.(score); // 调用外部处理器
+				this.eventHandlers.onScoreLoaded?.(score);
 			});
 			console.log(`[AlphaTabManager] Successfully bound handler for 'scoreLoaded'.`);
 		} else {
