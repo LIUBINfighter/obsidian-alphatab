@@ -18,7 +18,7 @@ export function handleAlphaTabRenderStarted(ui: AlphaTabUIManager) {
 
 export function handleAlphaTabRenderFinished(ui: AlphaTabUIManager, leaf: any) {
     ui.hideLoadingOverlay();
-    new Notice("Tab rendered!");
+    // new Notice("Tab rendered!");
     leaf?.updateHeader?.();
 }
 
