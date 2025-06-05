@@ -16,7 +16,18 @@ import * as path from "path";
 import { Notice, TFile, App } from "obsidian";
 // REMOVE: import { getPluginAssetHttpUrl } from "./utils"; // 不再需要此函数用于字体加载
 
-// ... AlphaTabManagerOptions interface remains the same ...
+// 添加缺失的接口定义
+export interface AlphaTabManagerOptions {
+	pluginInstance: any;
+	app: App;
+	mainElement: HTMLElement;
+	viewportElement: HTMLElement;
+	onError?: (args: any) => void;
+	onRenderStarted?: () => void;
+	onRenderFinished?: () => void;
+	onScoreLoaded?: (score: Score | null) => void;
+	onPlayerStateChanged?: (args: any) => void;
+}
 
 export class AlphaTabManager {
 	public api: AlphaTabApi | null = null;
@@ -228,7 +239,10 @@ export class AlphaTabManager {
 				);
 			}
 
-			// Monkey Patch AlphaTab的字体样式注入函数，阻止自动添加@font-face
+			// 尝试多种方法对AlphaTab的字体加载系统进行monkey patching
+
+			// 方法1: 替换WebPlatform.createStyleElement（如果存在）
+			let patchSucceeded = false;
 			if (alphaTab.WebPlatform && alphaTab.WebPlatform.prototype) {
 				// 保存原始方法引用
 				const originalCreateStyleElement = alphaTab.WebPlatform.prototype.createStyleElement;
@@ -255,9 +269,50 @@ export class AlphaTabManager {
 					return originalCreateStyleElement.apply(this, arguments);
 				};
 				
-				console.log("[AlphaTabManager] Monkey patched AlphaTab's createStyleElement");
-			} else {
-				console.warn("[AlphaTabManager] Could not patch AlphaTab WebPlatform - font injection may still occur automatically");
+				console.log("[AlphaTabManager] Patched WebPlatform.createStyleElement");
+				patchSucceeded = true;
+			}
+			
+			// 方法2: 替换全局document.createElement，特别针对style元素
+			const originalCreateElement = document.createElement;
+			document.createElement = function(tagName: string, options?: ElementCreationOptions) {
+				const element = originalCreateElement.call(document, tagName, options);
+				if (tagName.toLowerCase() === 'style') {
+					// 添加属性以便之后标识
+					element.setAttribute('data-intercepted', 'true');
+					
+					// 替代appendChild方法，拦截与字体相关的样式添加
+					const originalAppendChild = element.appendChild;
+					element.appendChild = function(child: Node) {
+						if (child.nodeType === Node.TEXT_NODE) {
+							const content = child.textContent || '';
+							if (content.includes('@font-face') && 
+								(content.includes('Bravura') || content.includes('alphatab'))) {
+								console.log('[AlphaTabManager] Intercepted font-face injection');
+								// 返回一个虚拟节点而不实际追加
+								return child;
+							}
+						}
+						return originalAppendChild.call(this, child);
+					};
+				}
+				return element;
+			};
+			console.log("[AlphaTabManager] Monkey patched document.createElement for style elements");
+			
+			// 方法3: 尝试在alphaTab对象上寻找字体相关功能并打补丁
+			if (alphaTab.platform && alphaTab.platform.fontCheckers) {
+				alphaTab.platform.fontCheckers = {
+					checkFont: (name: string) => Promise.resolve(true)
+				};
+				console.log('[AlphaTabManager] Patched fontCheckers.checkFont to always resolve true');
+				patchSucceeded = true;
+			}
+			
+			// 如果上述方法都找不到目标对象，尝试遍历alphaTab对象寻找字体相关方法
+			if (!patchSucceeded) {
+				console.log('[AlphaTabManager] Attempting to find font loading related objects in alphaTab');
+				this.tryFindAndPatchFontMethods(alphaTab);
 			}
 
 			this.api = new alphaTab.AlphaTabApi(
@@ -271,7 +326,7 @@ export class AlphaTabManager {
 				// @ts-ignore - 确保 alphaTab 没有内部修改我们的设置
 				if (this.api.settings && this.api.settings.core) {
 					// @ts-ignore
-					this.api.settings.core.fontDirectory = null;
+					// this.api.settings.core.fontDirectory = null;
 
 					// 可以尝试直接向 API 实例修改字体数据
 					// @ts-ignore
@@ -410,16 +465,27 @@ export class AlphaTabManager {
 	 */
 	private injectBravuraFontFace(fontDataUrls: Record<string, string>) {
 		try {
-			// 创建字体CSS
-			let fontFaceCss = `@font-face {
+			// 移除可能已存在的字体样式
+			const existingStyle = document.getElementById("alphatab-bravura-font");
+			if (existingStyle) {
+				existingStyle.remove();
+				console.log("[AlphaTabManager] Removed existing font style");
+			}
+			
+			// 创建多个字体规则以增加兼容性
+			let fontFaceCss = "";
+			
+			// 创建主要的Bravura字体规则
+			fontFaceCss += `@font-face {
 				font-family: 'Bravura';
 				font-style: normal;
-				font-weight: 400;
+				font-weight: normal;
+				font-display: block;
 				src: `;
 				
 			const sources = [];
 			
-			// 添加各种格式的字体源
+			// 添加各种格式的字体源 - 确保正确顺序（现代浏览器优先）
 			if (fontDataUrls["woff2"]) {
 				sources.push(`url('${fontDataUrls["woff2"]}') format('woff2')`);
 			}
@@ -430,15 +496,24 @@ export class AlphaTabManager {
 				sources.push(`url('${fontDataUrls["otf"]}') format('opentype')`);
 			}
 			if (fontDataUrls["eot"]) {
-				sources.push(`url('${fontDataUrls["eot"]}') format('embedded-opentype')`);
+				sources.push(`url('${fontDataUrls["eot"]}?#iefix') format('embedded-opentype')`);
 			}
 			if (fontDataUrls["svg"]) {
-				sources.push(`url('${fontDataUrls["svg"]}') format('svg')`);
+				sources.push(`url('${fontDataUrls["svg"]}#Bravura') format('svg')`);
 			}
 			
-			// 完成CSS
+			// 完成主字体CSS
 			fontFaceCss += sources.join(", ");
 			fontFaceCss += ";\n}\n";
+			
+			// 添加alphaTab命名的字体规则，与AlphaTab内部期望一致
+			fontFaceCss += `@font-face {
+				font-family: 'alphaTab';
+				font-style: normal;
+				font-weight: normal;
+				font-display: block;
+				src: ${sources.join(", ")};
+			}\n`;
 			
 			// 创建并附加样式元素
 			const styleElement = document.createElement("style");
@@ -449,8 +524,119 @@ export class AlphaTabManager {
 			
 			console.log("[AlphaTabManager] Manually injected Bravura @font-face with sources:", 
 				Object.keys(fontDataUrls).filter(key => sources.some(s => s.includes(key))));
+			
+			// 预加载字体以确保可用性
+			this.preloadBravuraFont(fontDataUrls);
 		} catch (err) {
 			console.error("[AlphaTabManager] Error injecting Bravura font face:", err);
 		}
 	}
-}
+	
+	/**
+	 * 预加载Bravura字体，确保它被浏览器正确加载
+	 */
+	private preloadBravuraFont(fontDataUrls: Record<string, string>) {
+		// 1. 尝试使用FontFace API（现代浏览器）
+		try {
+			if (window.FontFace) {
+				// 尝试woff2和woff格式
+				const fontUrl = fontDataUrls["woff2"] || fontDataUrls["woff"];
+				if (fontUrl) {
+					const fontFace = new FontFace('Bravura', `url(${fontUrl})`, {
+						style: 'normal',
+						weight: 'normal',
+						display: 'block'
+					});
+					
+					fontFace.load().then(() => {
+						// 添加到FontFaceSet
+						document.fonts.add(fontFace);
+						console.log("[AlphaTabManager] Bravura font preloaded with FontFace API");
+					}).catch(err => {
+						console.error("[AlphaTabManager] Error preloading Bravura with FontFace API:", err);
+					});
+					
+					// 同样尝试为alphaTab名称创建字体
+					const altFontFace = new FontFace('alphaTab', `url(${fontUrl})`, {
+						style: 'normal',
+						weight: 'normal',
+						display: 'block'
+					});
+					
+					document.fonts.add(altFontFace);
+				}
+			}
+		} catch (e) {
+			console.warn("[AlphaTabManager] FontFace API preload failed:", e);
+		}
+		
+		// 2. 强制创建一个不可见元素来触发字体加载
+		try {
+			const preloader = document.createElement('div');
+			preloader.style.position = 'absolute';
+			preloader.style.left = '-9999px';
+			preloader.style.visibility = 'hidden';
+			preloader.style.fontFamily = 'Bravura, alphaTab';
+			preloader.textContent = 'abcdefghijklmnopqrstuvwxyz';
+			document.body.appendChild(preloader);
+			
+			// 几秒后移除
+			setTimeout(() => {
+				document.body.removeChild(preloader);
+			}, 5000);
+		} catch (e) {
+			console.warn("[AlphaTabManager] Font preload element creation failed:", e);
+		}
+	}
+	
+	/**
+	 * 尝试在复杂对象中找到与字体相关的方法并进行monkey patching
+	 */
+	private tryFindAndPatchFontMethods(obj: any, visited = new Set()) {
+		if (!obj || visited.has(obj) || typeof obj !== 'object') return;
+		visited.add(obj);
+		
+		try {
+			// 遍历所有属性，搜索特定名称或特征
+			for (const key in obj) {
+				try {
+					if (key.toLowerCase().includes('font') || 
+					   (typeof key === 'string' && (
+						key.includes('createStyle') || 
+						key.includes('check') || 
+						key.includes('load')
+					   ))) {
+						console.log(`[AlphaTabManager] Found potential font-related key: ${key}`);
+						
+						// 如果是函数，尝试替换它
+						if (typeof obj[key] === 'function') {
+							const originalFn = obj[key];
+							obj[key] = function(...args: any[]) {
+								console.log(`[AlphaTabManager] Intercepted call to ${key}`, args);
+								
+								// 如果函数名称与字体加载相关，返回成功状态
+								if (key.toLowerCase().includes('fontavail') || 
+									key.toLowerCase().includes('checkfont')) {
+									return Promise.resolve(true);
+								}
+								
+								// 默认行为
+								return originalFn.apply(this, args);
+							};
+							console.log(`[AlphaTabManager] Patched ${key} function`);
+						}
+					}
+					
+					// 递归检查子对象，但避免循环引用
+					if (obj[key] && typeof obj[key] === 'object' && !visited.has(obj[key])) {
+						this.tryFindAndPatchFontMethods(obj[key], visited);
+					}
+				} catch (e) {
+					// 忽略属性访问错误
+				}
+			}
+		} catch (e) {
+			console.warn('[AlphaTabManager] Error in tryFindAndPatchFontMethods:', e);
+		}
+	}
+} // 这里补充闭合AlphaTabManager类的大括号
