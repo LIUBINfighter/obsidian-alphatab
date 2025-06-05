@@ -175,25 +175,9 @@ export class AlphaTabManager {
 		}
 
 		if (fontLoaded) {
-			// 按照 AlphaTab 文档设置字体数据
 			this.settings.core.fontDirectory = null;
-            // this.settings.core.fontDirectory = "/font/"; // 或者 "./fonts/" 或 "/" 或插件的某个虚拟子路径
-			
-			// 直接使用 JS 对象，而非 Map
 			this.settings.core.smuflFontSources = fontDataUrls;
 			fontLoadMode = "dataurl";
-
-			// 打印所有字体设置以便调试（注意我们现在显示更多信息）
-			console.log("[AlphaTabManager] Font settings:", {
-				smuflFontSources: Object.keys(fontDataUrls),
-				fontDataExample: fontDataUrls["woff"]
-					? fontDataUrls["woff"].substring(0, 50) + "..."
-					: "none",
-				fontDirectory: this.settings.core.fontDirectory,
-				scriptFile: this.settings.core.scriptFile,
-			});
-			
-			// 手动注入@font-face规则，取代AlphaTab的自动注入
 			this.injectBravuraFontFace(fontDataUrls);
 		} else {
 			console.error(
@@ -205,6 +189,24 @@ export class AlphaTabManager {
 			return;
 		}
 		console.log(`[AlphaTabManager] Font load mode: ${fontLoadMode}`);
+
+		// 新增：检测缺失格式并回退到 fetch 加载
+		{
+			const expectedExts = fontFiles.map((f) => f.ext);
+			const loadedExts = Object.keys(fontDataUrls);
+			const missingExts = expectedExts.filter((ext) => !loadedExts.includes(ext));
+			const serverUrl = (this.pluginInstance as any).resourceServerBaseUrl;
+			console.log(
+				`[AlphaTabManager Debug] Checking missing fonts: expected ${expectedExts.join(", ")}, got ${loadedExts.join(", ")}`
+			);
+			if (missingExts.length > 0 && serverUrl) {
+				this.settings.core.fontDirectory = `${serverUrl}/assets/alphatab/font/`;
+				fontLoadMode = "fetch";
+				console.log(`[AlphaTabManager Debug] Switch to fetch mode. fontDirectory = '${this.settings.core.fontDirectory}'`);
+			} else {
+				console.log("[AlphaTabManager Debug] No missing fonts or serverUrl not available.");
+			}
+		}
 
 		// 环境 hack (用于 API 实例化)
 		let originalProcess: any, originalModule: any;

@@ -1,7 +1,7 @@
 // main.ts
 import { Plugin, TFile, WorkspaceLeaf } from "obsidian";
 import { TabView, VIEW_TYPE_TAB } from "./TabView";
-// import { ResourceServer } from "./ResourceServer";
+import { ResourceServer } from "./ResourceServer"; // <-- 取消注释并添加
 import * as path from "path";
 import * as fs from "fs";
 
@@ -16,8 +16,9 @@ const DEFAULT_SETTINGS: AlphaTabPluginSettings = {
 
 export default class AlphaTabPlugin extends Plugin {
 	settings: AlphaTabPluginSettings;
-	// private resourceServer: ResourceServer | null = null;
-	actualPluginDir: string | null = null; // 新增属性
+	private resourceServer: ResourceServer | null = null; // <-- 取消注释
+	public resourceServerBaseUrl: string | null = null; // <-- 新增
+	actualPluginDir: string | null = null;
 
 	async onload() {
 		await this.loadSettings();
@@ -58,17 +59,14 @@ export default class AlphaTabPlugin extends Plugin {
 		);
 
 		// 启动资源服务器
-		/*
-    try {
-      this.resourceServer = new ResourceServer(actualPluginDir);
-      const serverUrl = await this.resourceServer.start();
-      console.log(`[AlphaTab Debug] Resource server available at: ${serverUrl}`);
-    } catch (error) {
-      console.error("[AlphaTab Debug] Failed to start resource server:", error);
-      // 不要因为资源服务器失败就停止插件加载
-      // new Notice("Failed to start AlphaTab resource server", 5000);
-    }
-    */
+		try {
+			this.resourceServer = new ResourceServer(actualPluginDir);
+			const serverUrl = await this.resourceServer.start();
+			this.resourceServerBaseUrl = serverUrl; // <-- 保存到实例
+			console.log(`[AlphaTab Debug] Resource server available at: ${serverUrl}`);
+		} catch (error) {
+			console.error("[AlphaTab Debug] Failed to start resource server:", error);
+		}
 
 		// 加载自定义样式
 		this.registerStyles();
@@ -152,14 +150,13 @@ export default class AlphaTabPlugin extends Plugin {
 
 	onunload() {
 		// 停止资源服务器
-		/*
-    if (this.resourceServer) {
-      this.resourceServer.stop().catch((err) => {
-        console.error("[AlphaTab Debug] Error stopping resource server:", err);
-      });
-      this.resourceServer = null;
-    }
-    */
+		if (this.resourceServer) {
+			this.resourceServer.stop().catch((err) => {
+				console.error("[AlphaTab Debug] Error stopping resource server:", err);
+			});
+			this.resourceServer = null;
+			this.resourceServerBaseUrl = null; // <-- 清理 URL
+		}
 
 		// 清理工作
 		this.app.workspace.detachLeavesOfType(VIEW_TYPE_TAB);
