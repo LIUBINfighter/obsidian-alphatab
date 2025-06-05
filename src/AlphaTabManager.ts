@@ -299,7 +299,29 @@ export class AlphaTabManager {
 				this.mainElement,
 				this.settings
 			);
-			console.log("[AlphaTabManager] AlphaTabApi instantiated.");
+			console.log("[AlphaTabManager] AlphaTabApi instantiated. API object:", this.api);
+
+			// ---- START: 详细检查 API 对象的事件发射器 ----
+			if (this.api) {
+				const eventNames = [
+					"error", "renderStarted", "renderFinished", "scoreLoaded",
+					"playerStateChanged", "fontLoaded", "soundFontLoaded",
+					"playerReady", "ready"
+				];
+				console.log("[AlphaTabManager] Checking API event emitters before binding:");
+				eventNames.forEach(eventName => {
+					// @ts-ignore
+					const emitter = this.api[eventName];
+					if (emitter && typeof emitter.on === 'function') {
+						console.log(`[AlphaTabManager] ✅ this.api.${eventName} seems OK (has .on method).`);
+					} else {
+						console.error(`[AlphaTabManager] ❌ this.api.${eventName} is MISSING or not an event emitter. Value:`, emitter);
+					}
+				});
+			} else {
+				console.error("[AlphaTabManager] CRITICAL: this.api is null or undefined AFTER instantiation attempt!");
+			}
+			// ---- END: 详细检查 ----
 
 			this.bindEvents(); // Bind all event handlers
 		} catch (e: any) {
@@ -358,72 +380,66 @@ export class AlphaTabManager {
 	}
 
 	private bindEvents() {
-		if (!this.api) return;
+		if (!this.api) {
+			console.error("[AlphaTabManager] bindEvents called, but this.api is null.");
+			return;
+		}
+		console.log("[AlphaTabManager] Attempting to bind events. API object:", this.api);
 
-		// Using optional chaining for safety, though eventHandlers should provide them
-		if (this.eventHandlers.onError)
-			this.api.error.on(this.eventHandlers.onError);
-		if (this.eventHandlers.onRenderStarted)
-			this.api.renderStarted.on(this.eventHandlers.onRenderStarted);
-		if (this.eventHandlers.onRenderFinished)
-			this.api.renderFinished.on(this.eventHandlers.onRenderFinished);
+		const safeBind = (eventName: string, handler?: (...args: any[]) => void) => {
+			// @ts-ignore - 动态访问属性
+			const emitter = this.api![eventName]; // 使用非空断言，因为上面已经检查过 this.api
+			
+			if (emitter && typeof emitter.on === 'function') {
+				if (handler) {
+					emitter.on(handler);
+					console.log(`[AlphaTabManager] Successfully bound handler for '${eventName}'.`);
+				} else {
+					// 如果外部没有提供处理器，我们可以选择绑定一个默认的日志记录器
+					emitter.on((...args: unknown[]) => {
+						console.log(`[AlphaTabManager] Event '${eventName}' fired with args:`, args);
+					});
+					console.log(`[AlphaTabManager] Bound default logger for '${eventName}' (no specific handler provided).`);
+				}
+			} else {
+				console.error(`[AlphaTabManager] FAILED to bind event '${eventName}'. Emitter is missing or invalid:`, emitter);
+			}
+		};
 
-		if (this.eventHandlers.onScoreLoaded || true) {
-			// Always handle scoreLoaded internally too
-			this.api.scoreLoaded.on((score: Score | null) => {
+		// 为AlphaTabManagerOptions中定义的所有事件处理器绑定
+		safeBind("error", this.eventHandlers.onError);
+		safeBind("renderStarted", this.eventHandlers.onRenderStarted);
+		safeBind("renderFinished", this.eventHandlers.onRenderFinished);
+		
+		// scoreLoaded 需要特殊处理来更新内部状态 this.score 和 this.renderTracks
+		// @ts-ignore
+		const scoreLoadedEmitter = this.api!.scoreLoaded;
+		if (scoreLoadedEmitter && typeof scoreLoadedEmitter.on === 'function') {
+			scoreLoadedEmitter.on((score: Score | null) => {
 				this.score = score;
 				if (score && score.tracks && score.tracks.length > 0) {
-					this.renderTracks = [score.tracks[0]]; // Default to rendering the first track
+					this.renderTracks = [score.tracks[0]];
 				} else {
 					this.renderTracks = [];
 				}
 				console.log(
-					"[AlphaTabManager] Score loaded event. Score:",
+					"[AlphaTabManager] Internal scoreLoaded handler. Score:",
 					score ? score.title : "null",
 					"Tracks available:",
 					score?.tracks?.length
 				);
-				this.eventHandlers.onScoreLoaded?.(score); // Call external handler
+				this.eventHandlers.onScoreLoaded?.(score); // 调用外部处理器
 			});
+			console.log(`[AlphaTabManager] Successfully bound handler for 'scoreLoaded'.`);
+		} else {
+			console.error(`[AlphaTabManager] FAILED to bind event 'scoreLoaded'. Emitter is missing or invalid:`, scoreLoadedEmitter);
 		}
 
-		if (this.eventHandlers.onPlayerStateChanged)
-			this.api.playerStateChanged.on(
-				this.eventHandlers.onPlayerStateChanged
-			);
-
-		// Detailed logging for resource loading events from AlphaTab
-		if (this.eventHandlers.onFontLoaded || true) {
-			this.api.fontLoaded.on((name: string, family: string) => {
-				console.log(
-					`[AlphaTabManager] AlphaTab FONT_LOADED event: Name='${name}', Family='${family}'`
-				);
-				this.eventHandlers.onFontLoaded?.(name, family);
-			});
-		}
-		if (this.eventHandlers.onSoundFontLoaded || true) {
-			this.api.soundFontLoaded.on(() => {
-				console.log(
-					"[AlphaTabManager] AlphaTab SOUNDFONT_LOADED event."
-				);
-				this.eventHandlers.onSoundFontLoaded?.();
-			});
-		}
-		if (this.eventHandlers.onPlayerReady || true) {
-			this.api.playerReady.on(() => {
-				console.log("[AlphaTabManager] AlphaTab PLAYER_READY event.");
-				this.eventHandlers.onPlayerReady?.();
-			});
-		}
-		if (this.eventHandlers.onReady || true) {
-			this.api.ready.on(() => {
-				// General readiness
-				console.log(
-					"[AlphaTabManager] AlphaTab READY event (general API readiness)."
-				);
-				this.eventHandlers.onReady?.();
-			});
-		}
+		safeBind("playerStateChanged", this.eventHandlers.onPlayerStateChanged);
+		safeBind("fontLoaded", this.eventHandlers.onFontLoaded);
+		safeBind("soundFontLoaded", this.eventHandlers.onSoundFontLoaded);
+		safeBind("playerReady", this.eventHandlers.onPlayerReady);
+		safeBind("ready", this.eventHandlers.onReady);
 	}
 
 	playPause() {
