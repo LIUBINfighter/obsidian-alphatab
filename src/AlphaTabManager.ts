@@ -269,15 +269,34 @@ export class AlphaTabManager {
 		this.settings.core.enableLazyLoading = true;
 		this.settings.core.logLevel = LogLevel.Debug;
 
-		this.settings.core.useWorkers = false;
-		this.settings.core.workerFile = null;
+		// === Worker 支持 begin ===
+		this.settings.core.useWorkers = true; // 启用 Worker
+
+		const pluginManifestDir = this.pluginInstance.manifest.dir;
+		if (!pluginManifestDir) {
+			/* ... error handling ... */ return;
+		}
+		// Worker 路径设置
+		const workerScriptFileSuffix = "/assets/alphatab/alphaTab.worker.mjs";
+		const workerScriptAssetObsidianPath = pluginManifestDir + workerScriptFileSuffix;
+		if (await this.app.vault.adapter.exists(workerScriptAssetObsidianPath)) {
+			this.settings.core.workerFile = this.app.vault.adapter.getResourcePath(workerScriptAssetObsidianPath);
+			console.log(`[AlphaTabManager] Settings: core.workerFile = ${this.settings.core.workerFile}`);
+		} else {
+			this.settings.core.workerFile = null;
+			this.settings.core.useWorkers = false; // 找不到则禁用
+			console.error(`[AlphaTabManager] Worker script (alphaTab.worker.mjs) NOT FOUND at '${workerScriptAssetObsidianPath}'. Worker disabled.`);
+			this.eventHandlers.onError?.({ message: "AlphaTab Worker脚本文件丢失，性能可能会受影响。" });
+		}
+		// === Worker 支持 end ===
+
 		this.settings.player.enablePlayer = false;
 		this.settings.player.soundFont = null;
 		console.log(
 			"[AlphaTabManager] Manual @font-face + Data URL Mode: Workers/Player disabled."
 		);
 
-		const pluginManifestDir = this.pluginInstance.manifest.dir;
+		// 移除重复声明，直接使用 pluginManifestDir
 		if (!pluginManifestDir) {
 			/* ... error handling ... */ return;
 		}
