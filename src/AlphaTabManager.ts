@@ -55,15 +55,8 @@ export class AlphaTabManager {
 		this.viewportElement = options.viewportElement;
 		this.eventHandlers = options;
 
-		// @ts-ignore
-		console.log(
-			`[AlphaTabManager] Initializing with AlphaTab library version: ${
-				alphaTab.version || "unknown"
-			}`
-		);
 		if (!this.pluginInstance?.manifest?.dir) {
-			const errorMsg =
-				"[AlphaTabManager] CRITICAL - pluginInstance.manifest.dir is not available.";
+			const errorMsg = "[AlphaTab] CRITICAL - pluginInstance.manifest.dir is not available.";
 			console.error(errorMsg);
 			this.eventHandlers.onError?.({
 				message: "插件清单信息不完整，无法构建资源路径。",
@@ -236,7 +229,7 @@ export class AlphaTabManager {
 			this.mainElement?.clientHeight === 0
 		) {
 			console.error(
-				"[AlphaTabManager] CRITICAL PRE-INIT CHECK: mainElement has zero width or height. Rendering WILL FAIL. Fix in TabView.ts!"
+				"[AlphaTab] CRITICAL: mainElement has zero width or height."
 			);
 			// Forcing a minimal size here for extreme cases, but this is a hack.
 			this.mainElement.style.minWidth =
@@ -281,11 +274,11 @@ export class AlphaTabManager {
 		const workerScriptAssetObsidianPath = pluginManifestDir + workerScriptFileSuffix;
 		if (await this.app.vault.adapter.exists(workerScriptAssetObsidianPath)) {
 			this.settings.core.workerFile = this.app.vault.adapter.getResourcePath(workerScriptAssetObsidianPath);
-			console.log(`[AlphaTabManager] Settings: core.workerFile = ${this.settings.core.workerFile}`);
+			// console.log(`[AlphaTab] Worker file path set`);
 		} else {
 			this.settings.core.workerFile = null;
-			this.settings.core.useWorkers = false; // 找不到则禁用
-			console.error(`[AlphaTabManager] Worker script (alphaTab.worker.mjs) NOT FOUND at '${workerScriptAssetObsidianPath}'. Worker disabled.`);
+			this.settings.core.useWorkers = false;
+			console.error("[AlphaTab] Worker script not found. Worker disabled.");
 			this.eventHandlers.onError?.({ message: "AlphaTab Worker脚本文件丢失，性能可能会受影响。" });
 		}
 		// === Worker 支持 end ===
@@ -521,39 +514,22 @@ export class AlphaTabManager {
 	}
 
 	private bindEvents() {
-		// ... (safeBind logic as before, ensure it logs missing emitters) ...
 		if (!this.api) {
-			console.error("[AlphaTabManager] bindEvents: API is null.");
+			console.error("[AlphaTab] bindEvents: API is null.");
 			return;
 		}
-		console.log("[AlphaTabManager] Attempting to bind events...");
-
-		const safeBind = (
-			eventName: string,
-			handler?: (...args: any[]) => void
-		) => {
+		
+		const safeBind = (eventName: string, handler?: (...args: any[]) => void) => {
 			// @ts-ignore
 			const emitter = this.api![eventName];
 			if (emitter && typeof emitter.on === "function") {
 				if (handler) emitter.on(handler);
-				else
-					emitter.on((...args: unknown[]) =>
-						console.log(
-							`[AlphaTabManager] Event '${eventName}' fired:`,
-							args
-						)
-					);
-				console.log(
-					`[AlphaTabManager] Bound handler for '${eventName}'.`
-				);
 			} else {
-				console.error(
-					`[AlphaTabManager] FAILED to bind event '${eventName}'. Emitter missing/invalid:`,
-					emitter
-				);
+				console.error(`[AlphaTab] Failed to bind event '${eventName}'`);
 			}
 		};
 
+		// 绑定所有事件
 		safeBind("error", this.eventHandlers.onError);
 		safeBind("renderStarted", this.eventHandlers.onRenderStarted);
 		safeBind("renderFinished", this.eventHandlers.onRenderFinished);

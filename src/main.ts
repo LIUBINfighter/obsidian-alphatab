@@ -43,7 +43,7 @@ export default class AlphaTabPlugin extends Plugin {
 
 		if (!actualPluginDir) {
 			console.error(
-				`[AlphaTab Debug] Could not find valid plugin directory from vault: ${pluginDir}`
+				`[AlphaTab] Could not find valid plugin directory from vault: ${pluginDir}`
 			);
 			throw new Error(
 				"AlphaTab 插件根目录查找失败，请检查插件安装路径。"
@@ -51,9 +51,7 @@ export default class AlphaTabPlugin extends Plugin {
 		}
 
 		this.actualPluginDir = actualPluginDir;
-		console.log(
-			`[AlphaTab Debug] Using plugin directory: ${actualPluginDir}`
-		);
+		// console.log(`[AlphaTab Debug] Using plugin directory: ${actualPluginDir}`);
 
 		// 加载自定义样式
 		this.registerStyles();
@@ -94,7 +92,7 @@ export default class AlphaTabPlugin extends Plugin {
 			})
 		);
 
-		console.log("AlphaTab Plugin Loaded");
+		// console.log("AlphaTab Plugin Loaded");
 	}
 
 	registerStyles() {
@@ -120,11 +118,11 @@ export default class AlphaTabPlugin extends Plugin {
 				});
 			} else {
 				console.warn(
-					"[AlphaTab Debug] styles.css not found in plugin directory."
+					"[AlphaTab] styles.css not found in plugin directory."
 				);
 			}
 		} catch (e) {
-			console.error("[AlphaTab Debug] Failed to inject styles.css:", e);
+			console.error("[AlphaTab] Failed to inject styles.css:", e);
 		}
 	}
 
