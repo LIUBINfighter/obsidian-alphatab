@@ -1,17 +1,13 @@
 // TabView.ts
-import { FileView, TFile, WorkspaceLeaf, Notice, App } from "obsidian"; // App needed for TracksModal & Manager
+import { FileView, TFile, WorkspaceLeaf, Notice, App } from "obsidian";
+import * as alphaTab from "@coderline/alphatab";
 import { AlphaTabUIManager } from "./AlphaTabUIManager";
 import { AlphaTabManager, AlphaTabManagerOptions } from "./AlphaTabManager";
 import * as AlphaTabEventHandlers from "./AlphaTabEventHandlers";
 import { TracksModal } from "./TracksModal";
-import { saveToFile } from "./utils"; // MIDI 下载需要
-import type {
-	Track,
-	Score,
-	AlphaTabApi,
-} from "@coderline/alphatab"; // 完整类型导入
+import { saveToFile } from "./utils";
 
-// PlayerStateChangedEventArgs is not exported from @coderline/alphatab
+// 使用命名空间下的类型
 type PlayerStateChangedEventArgs = any;
 
 export const VIEW_TYPE_TAB = "tab-view";

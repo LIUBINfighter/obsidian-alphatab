@@ -1,13 +1,13 @@
 // TracksModal.ts
 import { Modal, Setting, App } from "obsidian";
-import type { Track } from "@coderline/alphatab";
+import * as alphaTab from "@coderline/alphatab";
 
 export class TracksModal extends Modal {
-	tracks: Track[];
-	renderTracks: Set<Track>;
-	onChange?: (tracks?: Track[]) => void;
+	tracks: alphaTab.Track[];
+	renderTracks: Set<alphaTab.Track>;
+	onChange?: (tracks?: alphaTab.Track[]) => void;
 
-	constructor(app: App, tracks: Track[], onChange?: TracksModal["onChange"]) {
+	constructor(app: App, tracks: alphaTab.Track[], onChange?: TracksModal["onChange"]) {
 		super(app);
 		this.tracks = tracks;
 		this.onChange = onChange;
@@ -58,11 +58,11 @@ export class TracksModal extends Modal {
 	onClose = () => {
 		this.contentEl.empty();
 	};
-	setTracks(tracks: Track[]) {
+	setTracks(tracks: alphaTab.Track[]) {
 		this.tracks = tracks;
 		this.renderTracks = new Set(tracks.length > 0 ? [tracks[0]] : []);
 	}
-	setRenderTracks(tracks: Track[]) {
+	setRenderTracks(tracks: alphaTab.Track[]) {
 		this.renderTracks = new Set(tracks);
 	}
 }

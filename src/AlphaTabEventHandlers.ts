@@ -1,10 +1,6 @@
 // AlphaTabEventHandlers.ts
 // 可选：复杂事件处理逻辑可集中于此
-import type {
-	Score,
-	PlayerStateChangedEventArgs,
-	Track,
-} from "@coderline/alphatab";
+import * as alphaTab from "@coderline/alphatab";
 import type { AlphaTabManager } from "./AlphaTabManager";
 import type { AlphaTabUIManager } from "./AlphaTabUIManager";
 import { Notice } from "obsidian";
@@ -32,7 +28,7 @@ export function handleAlphaTabRenderFinished(ui: AlphaTabUIManager, leaf: any) {
 }
 
 export function handleAlphaTabScoreLoaded(
-	score: Score | null,
+	score: alphaTab.Score | null,
 	ui: AlphaTabUIManager,
 	tracksModal: any,
 	api: any,
@@ -56,7 +52,7 @@ export function handleAlphaTabScoreLoaded(
 }
 
 export function handlePlayerStateChanged(
-	args: PlayerStateChangedEventArgs,
+	args: alphaTab.PlayerStateChangedEventArgs,
 	ui: AlphaTabUIManager
 ) {
 	const isPlaying = args.state === 1; // synth.PlayerState.Playing
