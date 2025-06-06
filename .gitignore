@@ -1,6 +1,12 @@
 # tools
 merge-ts-files.js
+
+# cache
 merged.txt
+
+# obsidian
+.obsidian
+data.json
 
 # vscode
 .vscode 
@@ -18,9 +24,6 @@ main.js
 
 # Exclude sourcemaps
 *.map
-
-# obsidian
-data.json
 
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store
