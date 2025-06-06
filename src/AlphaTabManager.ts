@@ -519,7 +519,7 @@ export class AlphaTabManager {
 		// @ts-ignore
 		const scoreLoadedEmitter = this.api!.scoreLoaded;
 		if (scoreLoadedEmitter && typeof scoreLoadedEmitter.on === "function") {
-			scoreLoadedEmitter.on((score: Score | null) => {
+			scoreLoadedEmitter.on((score: alphaTab.model.Score | null) => {
 				this.score = score;
 				if (score?.tracks?.length) {
 					this.renderTracks = [score.tracks[0]];
