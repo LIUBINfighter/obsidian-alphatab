@@ -411,13 +411,13 @@ export class AlphaTabManager {
 		// Display settings
 		this.settings.display.scale = 0.8;
 		this.settings.display.layoutMode = LayoutMode.Page;
-		// 使用正确的 Font 类实例
-		this.settings.display.resources.smuflFont = alphaTab.model.Font.withFamilyList(
-			["Bravura", "alphaTab"],
-			21
-		);
+		// 移除有问题的 smuflFont 设置，AlphaTab 会使用默认的 SMuFL 字体配置
+		// this.settings.display.resources.smuflFont = alphaTab.model.Font.withFamilyList(
+		// 	["Bravura", "alphaTab"],
+		// 	21
+		// );
 		console.log(
-			"[AlphaTabManager] Settings: display.resources.smuflFont.families set to ['Bravura', 'alphaTab']"
+			"[AlphaTabManager] Settings: Using default SMuFL font configuration"
 		);
 
 		const initialThemeColors = this.darkMode; /* ... theme colors ... */
