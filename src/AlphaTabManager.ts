@@ -25,7 +25,7 @@ export interface AlphaTabManagerOptions {
 	onError?: (args: any) => void;
 	onRenderStarted?: (isReload: boolean, canRender: boolean) => void;
 	onRenderFinished?: () => void;
-	onScoreLoaded?: (score: Score | null) => void;
+	onScoreLoaded?: (score: alphaTab.model.Score | null) => void;
 	onPlayerStateChanged?: (args: any) => void;
 	onFontLoaded?: (name: string, family: string) => void;
 	onSoundFontLoaded?: () => void;
@@ -35,14 +35,8 @@ export interface AlphaTabManagerOptions {
 
 export class AlphaTabManager {
 	public api: AlphaTabApi | null = null;
-	public score: Score | null = null;
-	public settings!: Settings;
-	private pluginInstance: any;
-	private app: App;
-	private mainElement: HTMLElement;
-	private viewportElement: HTMLElement;
-	private eventHandlers: AlphaTabManagerOptions;
-	private renderTracks: Track[] = [];
+	public score: alphaTab.model.Score | null = null;
+	private renderTracks: alphaTab.model.Track[] = [];
 	private renderWidth = 800;
 	private darkMode: boolean = false;
 	private static readonly FONT_STYLE_ELEMENT_ID =
@@ -163,30 +157,16 @@ export class AlphaTabManager {
 	}
 
 	private triggerFontPreload(fontFamilies: string[]) {
-		// Attempt to force browser to load/acknowledge the font by using it
-		// This is a bit of a hack, FontFace API is more robust if available and working
 		fontFamilies.forEach((fontFamily) => {
 			if (typeof FontFace !== "undefined" && document.fonts) {
-				// Using woff2 or woff from smuflFontData which should have been set up
-				const fontUrl =
-					(
-						this.settings.core.smuflFontSources as Record<
-							string,
-							string
-						>
-					)?.["woff2"] ||
-					(
-						this.settings.core.smuflFontSources as Record<
-							string,
-							string
-						>
-					)?.["woff"];
+				const fontUrl = this.settings.core.fontDirectory + 'Bravura.woff2';
 				if (fontUrl) {
 					const font = new FontFace(fontFamily, `url(${fontUrl})`, {
-						display: "block",
+						display: 'block'
 					});
 					font.load()
 						.then((loadedFont) => {
+							// @ts-ignore
 							document.fonts.add(loadedFont);
 							console.log(
 								`[AlphaTabManager] FontFace API: Successfully loaded and added '${fontFamily}'.`
@@ -273,9 +253,11 @@ export class AlphaTabManager {
 		const workerScriptFileSuffix = "/assets/alphatab/alphaTab.worker.mjs";
 		const workerScriptAssetObsidianPath = pluginManifestDir + workerScriptFileSuffix;
 		if (await this.app.vault.adapter.exists(workerScriptAssetObsidianPath)) {
+			// @ts-ignore
 			this.settings.core.workerFile = this.app.vault.adapter.getResourcePath(workerScriptAssetObsidianPath);
 			// console.log(`[AlphaTab] Worker file path set`);
 		} else {
+			// @ts-ignore
 			this.settings.core.workerFile = null;
 			this.settings.core.useWorkers = false;
 			console.error("[AlphaTab] Worker script not found. Worker disabled.");
@@ -440,21 +422,15 @@ export class AlphaTabManager {
 		);
 
 		// Environment hack
-		let originalProcess: any, originalModule: any;
-		let modifiedGlobals = false;
 		try {
-			// ... (global overrides) ...
-			// @ts-ignore
+			let originalProcess: any, originalModule: any;
 			if (typeof process !== "undefined") {
-				originalProcess = globalThis.process;
-				globalThis.process = undefined;
-				modifiedGlobals = true;
+				originalProcess = (globalThis as any).process;
+				(globalThis as any).process = undefined;
 			}
-			// @ts-ignore
 			if (typeof module !== "undefined") {
-				originalModule = globalThis.module;
-				globalThis.module = undefined;
-				modifiedGlobals = true;
+				originalModule = (globalThis as any).module;
+				(globalThis as any).module = undefined;
 			}
 			// @ts-ignore
 			if (alphaTab.Environment && typeof WebPlatform !== "undefined") {

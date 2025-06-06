@@ -114,7 +114,7 @@ export class TabView extends FileView {
 					error,
 					this.uiManager
 				);
-				this.leaf.requestActiveLeaf(); // 替换 updateHeader
+				this.app.workspace.setActiveLeaf(this.leaf); // 修正: 使用正确的 API
 			},
 			onScoreLoaded: (score) => {
 				// score 可能为 null
@@ -142,8 +142,8 @@ export class TabView extends FileView {
 						"错误：无法加载乐谱数据。"
 					);
 				}
-				this.leaf.requestActiveLeaf(); // 替换 updateHeader
-				this.updateDisplayTitle(); // 替换 updateHeader 调用
+				this.app.workspace.setActiveLeaf(this.leaf); // 修正: 使用正确的 API
+				this.updateDisplayTitle(); // 使用我们之前定义的方法
 			},
 			onRenderStarted: () => {
 				AlphaTabEventHandlers.handleAlphaTabRenderStarted(
@@ -246,7 +246,7 @@ export class TabView extends FileView {
 		super.onResize();
 		if (this.atManager && this.uiManager.atMainRef?.clientWidth > 0) {
 			this.atManager.render();
-			this.updateDisplayTitle(); // 使用新的更新标题方法
+			this.updateDisplayTitle(); // 使用我们之前定义的方法
 		}
 	}
 

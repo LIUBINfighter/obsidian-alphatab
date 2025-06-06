@@ -20,10 +20,9 @@ export default class AlphaTabPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-		// 获取 Obsidian 库根目录
 		const vaultRoot = (this.app.vault.adapter as any).basePath as string;
-		// 拼接插件目录绝对路径
-		const pluginDir = path.join(vaultRoot, this.manifest.dir);
+		// 确保 manifest.dir 有值
+		const pluginDir = path.join(vaultRoot, this.manifest.dir || '');
 
 		// 检查 manifest.json 是否存在且 id 匹配
 		let actualPluginDir: string | null = null;

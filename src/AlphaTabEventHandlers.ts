@@ -28,7 +28,7 @@ export function handleAlphaTabRenderFinished(ui: AlphaTabUIManager, leaf: any) {
 }
 
 export function handleAlphaTabScoreLoaded(
-	score: alphaTab.Score | null,
+	score: alphaTab.model.Score | null,
 	ui: AlphaTabUIManager,
 	tracksModal: any,
 	api: any,
@@ -52,7 +52,7 @@ export function handleAlphaTabScoreLoaded(
 }
 
 export function handlePlayerStateChanged(
-	args: alphaTab.PlayerStateChangedEventArgs,
+	args: { state: number }, // 简化类型定义
 	ui: AlphaTabUIManager
 ) {
 	const isPlaying = args.state === 1; // synth.PlayerState.Playing
