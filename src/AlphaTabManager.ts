@@ -290,8 +290,22 @@ export class AlphaTabManager {
 		}
 		// === Worker 支持 end ===
 
-		this.settings.player.enablePlayer = false;
-		this.settings.player.soundFont = null;
+		// === Player/SoundFont 支持 begin ===
+		this.settings.player.enablePlayer = true; // 启用 Player
+
+		const soundFontFileSuffix = "/assets/alphatab/soundfont/sonivox.sf2";
+		const soundFontAssetObsidianPath = pluginManifestDir + soundFontFileSuffix;
+		if (await this.app.vault.adapter.exists(soundFontAssetObsidianPath)) {
+			this.settings.player.soundFont = this.app.vault.adapter.getResourcePath(soundFontAssetObsidianPath);
+			console.log(`[AlphaTabManager] Settings: player.soundFont = ${this.settings.player.soundFont}`);
+		} else {
+			this.settings.player.soundFont = null;
+			this.settings.player.enablePlayer = false; // 找不到则禁用
+			console.error(`[AlphaTabManager] SoundFont file NOT FOUND at '${soundFontAssetObsidianPath}'. Player disabled.`);
+			this.eventHandlers.onError?.({ message: "音色库文件丢失，播放功能已禁用。" });
+		}
+		// === Player/SoundFont 支持 end ===
+
 		console.log(
 			"[AlphaTabManager] Manual @font-face + Data URL Mode: Workers/Player disabled."
 		);

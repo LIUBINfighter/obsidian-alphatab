@@ -37,11 +37,11 @@ export class AlphaTabUIManager {
 	renderControlBar(onPlayPause: () => void, onStop: () => void) {
 		this.atControlsRef.empty();
 		this.playPauseButton = this.atControlsRef.createEl("button", {
-			text: "Play",
+			text: "播放", // 原为 "Play"
 		});
 		this.playPauseButton.addEventListener("click", onPlayPause);
 		this.stopButton = this.atControlsRef.createEl("button", {
-			text: "Stop",
+			text: "停止", // 原为 "Stop"
 		});
 		this.stopButton.disabled = true;
 		this.stopButton.addEventListener("click", onStop);
