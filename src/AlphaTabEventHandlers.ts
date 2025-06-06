@@ -28,26 +28,26 @@ export function handleAlphaTabRenderFinished(ui: AlphaTabUIManager, leaf: any) {
 }
 
 export function handleAlphaTabScoreLoaded(
-	score: alphaTab.model.Score | null,
-	ui: AlphaTabUIManager,
-	tracksModal: any,
+	score: any,
+	uiManager: any,
+	tracksModal: any | null, // 改为可以为null
 	api: any,
 	leaf: any
 ) {
-	if (!score) {
-		ui.showErrorInOverlay(
-			"Error: Score data could not be loaded or parsed."
-		);
-		return;
-	}
-	tracksModal.setTracks(score.tracks);
-	if (score.tracks?.length > 0) {
-		tracksModal.setRenderTracks([score.tracks[0]]);
-		api?.renderTracks([score.tracks[0]]);
+	uiManager.hideLoadingOverlay();
+
+	// 如果tracksModal存在，则更新它
+	if (tracksModal) {
+		tracksModal.setTracks(score.tracks);
+		const initialRenderTracks =
+			score.tracks && score.tracks.length > 0 ? [score.tracks[0]] : [];
+		tracksModal.setRenderTracks(initialRenderTracks);
+		api?.renderTracks(initialRenderTracks);
 		setTimeout(() => {
 			api?.render();
 		}, 1000);
 	}
+
 	leaf?.updateHeader?.();
 }
 

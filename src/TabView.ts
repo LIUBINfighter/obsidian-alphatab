@@ -4,7 +4,7 @@ import * as alphaTab from "@coderline/alphatab";
 import { AlphaTabUIManager } from "./AlphaTabUIManager";
 import { AlphaTabManager, AlphaTabManagerOptions } from "./AlphaTabManager";
 import * as AlphaTabEventHandlers from "./AlphaTabEventHandlers";
-import { TracksModal } from "./TracksModal";
+import { TracksSidebar } from "./TracksSidebar";
 import { saveToFile } from "./utils";
 
 // 使用命名空间下的类型
@@ -16,7 +16,8 @@ export class TabView extends FileView {
 	private currentFile: TFile | null = null;
 	private uiManager!: AlphaTabUIManager;
 	private atManager!: AlphaTabManager;
-	private tracksModal!: TracksModal;
+	private tracksSidebar!: TracksSidebar;
+	private mainContentEl!: HTMLElement;
 	private pluginInstance: any; // 主插件实例
 
 	constructor(leaf: WorkspaceLeaf, plugin: any) {
@@ -28,27 +29,11 @@ export class TabView extends FileView {
 			"gtp-preview-container",
 		]);
 
-		// TracksModal 初始化 (稍后当乐谱加载时会更新其音轨)
-		// onChangeTracksFromModal 是 TracksModal 点击 "Apply" 后的回调
-		this.tracksModal = new TracksModal(
-			this.app,
-			[],
-			this.onChangeTracksFromModal.bind(this)
-		);
-
 		// 添加视图操作按钮
 		this.addAction("music", "选择音轨", () => {
-			// "Select Tracks"
 			if (this.atManager) {
-				const allTracks = this.atManager.getAllTracks();
-				const selectedTracks = this.atManager.getSelectedRenderTracks();
-				if (allTracks.length > 0) {
-					this.tracksModal.setTracks(allTracks);
-					this.tracksModal.setRenderTracks(selectedTracks);
-					this.tracksModal.open();
-				} else {
-					new Notice("当前乐谱没有可用音轨。");
-				}
+				// 切换侧边栏显示或隐藏
+				this.tracksSidebar.toggle();
 			} else {
 				new Notice("AlphaTab 管理器尚未初始化。");
 			}
@@ -82,8 +67,20 @@ export class TabView extends FileView {
 		this.currentFile = file;
 		this.contentEl.empty(); // 清空先前内容
 
+		// 创建布局容器
+		const layoutContainer = this.contentEl.createDiv({ cls: "at-layout-container" });
+		
+		// 创建侧边栏
+		this.tracksSidebar = new TracksSidebar(
+			layoutContainer, 
+			this.onChangeTracksFromSidebar.bind(this)
+		);
+		
+		// 创建主内容区域
+		this.mainContentEl = layoutContainer.createDiv({ cls: "at-main-content" });
+
 		// 1. 初始化 UI 管理器
-		this.uiManager = new AlphaTabUIManager({ container: this.contentEl });
+		this.uiManager = new AlphaTabUIManager({ container: this.mainContentEl });
 		this.uiManager.renderControlBar(
 			() => this.atManager?.playPause(), // Play/Pause 点击回调
 			() => this.atManager?.stop() // Stop 点击回调
@@ -118,21 +115,21 @@ export class TabView extends FileView {
 			},
 			onScoreLoaded: (score) => {
 				// score 可能为 null
-				// AlphaTabEventHandlers.handleAlphaTabScoreLoaded 现在直接在 Manager 内部处理 score 和 renderTracks 的初始设置
-				// TabView 仅需响应 UI 更新或 Modal 数据更新
 				if (score) {
-					// 更新 TracksModal 的数据源
-					this.tracksModal.setTracks(score.tracks || []);
+					// 更新轨道侧边栏的数据源
+					const allTracks = score.tracks || [];
+					this.tracksSidebar.setTracks(allTracks);
 					const initialRenderTracks =
 						score.tracks && score.tracks.length > 0
 							? [score.tracks[0]]
 							: [];
-					this.tracksModal.setRenderTracks(initialRenderTracks); // Modal 也用初始选择
-					// 如果需要，可以在这里额外调用 handler (但 manager 内部已处理 score 和 renderTracks)
+					this.tracksSidebar.setRenderTracks(initialRenderTracks);
+					
+					// 如果需要，可以在这里额外调用 handler
 					AlphaTabEventHandlers.handleAlphaTabScoreLoaded(
 						score,
 						this.uiManager,
-						this.tracksModal,
+						null, // 不再使用TracksModal
 						this.atManager.api,
 						this.leaf
 					);
@@ -182,8 +179,8 @@ export class TabView extends FileView {
 		await this.atManager.initializeAndLoadScore(file);
 	}
 
-	// TracksModal "Apply" 按钮的回调
-	private onChangeTracksFromModal(selectedTracks?: alphaTab.model.Track[]) {
+	// 处理从轨道侧边栏的选择变更
+	private onChangeTracksFromSidebar(selectedTracks?: alphaTab.model.Track[]) {
 		if (!this.atManager) {
 			new Notice("AlphaTab 管理器未准备好，无法更改音轨。");
 			return;
@@ -192,9 +189,7 @@ export class TabView extends FileView {
 			this.atManager.updateRenderTracks(selectedTracks); // 通知 Manager 更新音轨
 			new Notice(`正在渲染 ${selectedTracks.length} 条音轨。`);
 		} else {
-			// 如果没有选择音轨，可以恢复到默认（例如，Manager 内部的 this.renderTracks 或所有音轨）
-			// new Notice("未选择音轨，将按默认显示。"); // 或者 Manager 自己决定如何处理空选择
-			const allTracks = this.atManager.getAllTracks(); // 获取所有音轨作为后备
+			const allTracks = this.atManager.getAllTracks();
 			this.atManager.updateRenderTracks(allTracks);
 			new Notice("未选择特定音轨，显示所有音轨。");
 		}
