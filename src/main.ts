@@ -1,7 +1,6 @@
 // main.ts
 import { Plugin, TFile, WorkspaceLeaf } from "obsidian";
 import { TabView, VIEW_TYPE_TAB } from "./TabView";
-// import { ResourceServer } from "./ResourceServer";
 import * as path from "path";
 import * as fs from "fs";
 
@@ -16,7 +15,6 @@ const DEFAULT_SETTINGS: AlphaTabPluginSettings = {
 
 export default class AlphaTabPlugin extends Plugin {
 	settings: AlphaTabPluginSettings;
-	// private resourceServer: ResourceServer | null = null;
 	actualPluginDir: string | null = null; // 新增属性
 
 	async onload() {
@@ -56,19 +54,6 @@ export default class AlphaTabPlugin extends Plugin {
 		console.log(
 			`[AlphaTab Debug] Using plugin directory: ${actualPluginDir}`
 		);
-
-		// 启动资源服务器
-		/*
-    try {
-      this.resourceServer = new ResourceServer(actualPluginDir);
-      const serverUrl = await this.resourceServer.start();
-      console.log(`[AlphaTab Debug] Resource server available at: ${serverUrl}`);
-    } catch (error) {
-      console.error("[AlphaTab Debug] Failed to start resource server:", error);
-      // 不要因为资源服务器失败就停止插件加载
-      // new Notice("Failed to start AlphaTab resource server", 5000);
-    }
-    */
 
 		// 加载自定义样式
 		this.registerStyles();
@@ -151,16 +136,6 @@ export default class AlphaTabPlugin extends Plugin {
 	}
 
 	onunload() {
-		// 停止资源服务器
-		/*
-    if (this.resourceServer) {
-      this.resourceServer.stop().catch((err) => {
-        console.error("[AlphaTab Debug] Error stopping resource server:", err);
-      });
-      this.resourceServer = null;
-    }
-    */
-
 		// 清理工作
 		this.app.workspace.detachLeavesOfType(VIEW_TYPE_TAB);
 		console.log("AlphaTab Plugin Unloaded");
@@ -177,10 +152,4 @@ export default class AlphaTabPlugin extends Plugin {
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
-
-	/*
-  getResourceServer(): ResourceServer | null {
-    return this.resourceServer;
-  }
-  */
 }

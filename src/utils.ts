@@ -12,22 +12,3 @@ export function saveToFile(fileName: string, blob: Blob) {
 	URL.revokeObjectURL(url);
 	console.log(`[AlphaTab Debug] File '${fileName}' saved.`);
 }
-
-// 资源 URL 生成辅助
-export function getPluginAssetHttpUrl(
-	pluginInstance: any,
-	pluginId: string,
-	assetPath: string
-): string {
-	const resourceServer = pluginInstance.getResourceServer?.();
-	if (!resourceServer) {
-		console.error("[AlphaTab Debug] Resource server not available");
-		throw new Error("Resource server not initialized");
-	}
-	const baseUrl = resourceServer.getBaseUrl();
-	const normalizedAssetPath = assetPath.startsWith("/")
-		? assetPath.substring(1)
-		: assetPath;
-	const fullUrl = `${baseUrl}/${normalizedAssetPath}`;
-	return fullUrl;
-}

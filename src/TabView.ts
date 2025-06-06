@@ -8,9 +8,11 @@ import { saveToFile } from "./utils"; // MIDI 下载需要
 import type {
 	Track,
 	Score,
-	PlayerStateChangedEventArgs,
 	AlphaTabApi,
 } from "@coderline/alphatab"; // 完整类型导入
+
+// PlayerStateChangedEventArgs is not exported from @coderline/alphatab
+type PlayerStateChangedEventArgs = any;
 
 export const VIEW_TYPE_TAB = "tab-view";
 
