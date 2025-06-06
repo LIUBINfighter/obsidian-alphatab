@@ -411,11 +411,11 @@ export class AlphaTabManager {
 		// Display settings
 		this.settings.display.scale = 0.8;
 		this.settings.display.layoutMode = LayoutMode.Page;
-		// Explicitly tell AlphaTab to try "Bravura" first, then "alphaTab" (which we also define in manual @font-face)
-		this.settings.display.resources.smuflFont = {
-			families: ["Bravura", "alphaTab"],
-			size: 21,
-		};
+		// 使用正确的 Font 类实例
+		this.settings.display.resources.smuflFont = alphaTab.model.Font.withFamilyList(
+			["Bravura", "alphaTab"],
+			21
+		);
 		console.log(
 			"[AlphaTabManager] Settings: display.resources.smuflFont.families set to ['Bravura', 'alphaTab']"
 		);
