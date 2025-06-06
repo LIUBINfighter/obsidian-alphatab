@@ -71,6 +71,12 @@ export class TabView extends FileView {
 		return this.currentFile?.basename || "吉他谱";
 	}
 
+	private async updateDisplayTitle() {
+		// 确保视图标题更新
+		const title = this.getDisplayText();
+		this.titleEl.setText(title);
+	}
+
 	override async onLoadFile(file: TFile): Promise<void> {
 		this.currentFile = file;
 		this.contentEl.empty(); // 清空先前内容
@@ -107,7 +113,7 @@ export class TabView extends FileView {
 					error,
 					this.uiManager
 				);
-				this.leaf.updateHeader(); // 更新标题以防乐谱信息失效
+				this.leaf.requestActiveLeaf(); // 替换 updateHeader
 			},
 			onScoreLoaded: (score) => {
 				// score 可能为 null
@@ -135,7 +141,8 @@ export class TabView extends FileView {
 						"错误：无法加载乐谱数据。"
 					);
 				}
-				this.leaf.updateHeader(); // 更新视图标题
+				this.leaf.requestActiveLeaf(); // 替换 updateHeader
+				this.updateDisplayTitle(); // 替换 updateHeader 调用
 			},
 			onRenderStarted: () => {
 				AlphaTabEventHandlers.handleAlphaTabRenderStarted(
@@ -175,7 +182,7 @@ export class TabView extends FileView {
 	}
 
 	// TracksModal "Apply" 按钮的回调
-	private onChangeTracksFromModal(selectedTracks?: Track[]) {
+	private onChangeTracksFromModal(selectedTracks?: alphaTab.model.Track[]) {
 		if (!this.atManager) {
 			new Notice("AlphaTab 管理器未准备好，无法更改音轨。");
 			return;
@@ -211,7 +218,8 @@ export class TabView extends FileView {
 			const trackIndices = tracksForMidi.map((t) => t.index);
 
 			const midiFile = new alphaTab.midi.MidiFile();
-			this.atManager.api.midiGenerate(trackIndices, midiFile);
+			// 使用正确的 API 调用方式
+			this.atManager.api.midi.generator.generate(trackIndices, midiFile);
 
 			const fileName = `${
 				this.atManager.score.title || "未命名乐谱"
@@ -233,11 +241,9 @@ export class TabView extends FileView {
 
 	override onResize(): void {
 		super.onResize();
-		// 可以添加防抖逻辑
 		if (this.atManager && this.uiManager.atMainRef?.clientWidth > 0) {
-			// AlphaTabManager 应该自己处理宽度的变化，或者提供一个 resize 方法
-			// this.atManager.settings.display.width = this.uiManager.atMainRef.clientWidth; // 不建议直接修改
-			this.atManager.render(); // 通知 Manager 重新渲染，它会使用当前的宽度
+			this.atManager.render();
+			this.updateDisplayTitle(); // 替换 updateHeader 调用
 		}
 	}
 
