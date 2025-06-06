@@ -6,6 +6,7 @@ merged.txt
 
 # obsidian
 .obsidian
+*/.obsidian
 data.json
 
 # vscode
