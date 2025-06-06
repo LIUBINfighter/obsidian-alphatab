@@ -72,9 +72,9 @@ export class TabView extends FileView {
 	}
 
 	private async updateDisplayTitle() {
-		// 确保视图标题更新
+		// 使用 FileView 的方法来更新标题
 		const title = this.getDisplayText();
-		this.titleEl.setText(title);
+		this.containerEl.find('.view-header-title')?.setText(title);
 	}
 
 	override async onLoadFile(file: TFile): Promise<void> {
@@ -218,8 +218,9 @@ export class TabView extends FileView {
 			const trackIndices = tracksForMidi.map((t) => t.index);
 
 			const midiFile = new alphaTab.midi.MidiFile();
-			// 使用正确的 API 调用方式
-			this.atManager.api.midi.generator.generate(trackIndices, midiFile);
+			// 直接使用 AlphaTab API 生成 MIDI
+			const generator = new alphaTab.midi.MidiFileGenerator();
+			generator.generate(this.atManager.api.score, trackIndices, midiFile);
 
 			const fileName = `${
 				this.atManager.score.title || "未命名乐谱"
@@ -243,7 +244,7 @@ export class TabView extends FileView {
 		super.onResize();
 		if (this.atManager && this.uiManager.atMainRef?.clientWidth > 0) {
 			this.atManager.render();
-			this.updateDisplayTitle(); // 替换 updateHeader 调用
+			this.updateDisplayTitle(); // 使用新的更新标题方法
 		}
 	}
 
