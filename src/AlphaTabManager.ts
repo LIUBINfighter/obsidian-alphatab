@@ -7,8 +7,6 @@ import {
 	ScrollMode,
 	type AlphaTabApi,
 	type Settings,
-	type Score,
-	type Track,
 	WebPlatform,
 	LogLevel,
 } from "@coderline/alphatab";
@@ -34,6 +32,14 @@ export interface AlphaTabManagerOptions {
 }
 
 export class AlphaTabManager {
+	// 添加缺失的类属性声明
+	private pluginInstance: any;
+	private app: App;
+	private mainElement: HTMLElement;
+	private viewportElement: HTMLElement;
+	private eventHandlers: AlphaTabManagerOptions;
+	private settings: Settings;
+
 	public api: AlphaTabApi | null = null;
 	public score: alphaTab.model.Score | null = null;
 	private renderTracks: alphaTab.model.Track[] = [];
@@ -555,13 +561,13 @@ export class AlphaTabManager {
 		if (this.api && this.settings.player.enablePlayer) this.api.stop();
 		else console.warn("Player disabled");
 	}
-	public updateRenderTracks(tracks: Track[]) {
+	public updateRenderTracks(tracks: alphaTab.model.Track[]) {
 		if (this.api) this.api.renderTracks(tracks);
 	}
-	public getAllTracks(): Track[] {
+	public getAllTracks(): alphaTab.model.Track[] {
 		return this.score?.tracks || [];
 	}
-	public getSelectedRenderTracks(): Track[] {
+	public getSelectedRenderTracks(): alphaTab.model.Track[] {
 		return this.renderTracks;
 	}
 	render() {
