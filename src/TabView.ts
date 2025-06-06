@@ -54,7 +54,8 @@ export class TabView extends FileView {
 			}
 		});
 
-		this.addAction("download", "下载 MIDI", this.downloadMidi.bind(this)); // "Download MIDI"
+		// 暂时注释掉 MIDI 下载按钮
+		// this.addAction("download", "下载 MIDI", this.downloadMidi.bind(this));
 	}
 
 	getViewType(): string {
@@ -199,13 +200,14 @@ export class TabView extends FileView {
 		}
 	}
 
+	// 暂时注释掉整个 downloadMidi 方法
+	/*
 	private downloadMidi() {
 		if (!this.atManager || !this.atManager.score || !this.atManager.api) {
 			new Notice("乐谱或 AlphaTab API 未就绪，无法导出 MIDI。");
 			return;
 		}
 		try {
-			// 获取当前选择用于渲染的音轨，如果没有则导出所有音轨
 			const tracksForMidi =
 				this.atManager.getSelectedRenderTracks().length > 0
 					? this.atManager.getSelectedRenderTracks()
@@ -218,7 +220,6 @@ export class TabView extends FileView {
 			const trackIndices = tracksForMidi.map((t) => t.index);
 
 			const midiFile = new alphaTab.midi.MidiFile();
-			// 直接使用 AlphaTab API 生成 MIDI
 			const generator = new alphaTab.midi.MidiFileGenerator();
 			generator.generate(this.atManager.api.score, trackIndices, midiFile);
 
@@ -239,6 +240,7 @@ export class TabView extends FileView {
 			new Notice(`生成 MIDI 错误: ${e.message}`);
 		}
 	}
+	*/
 
 	override onResize(): void {
 		super.onResize();
