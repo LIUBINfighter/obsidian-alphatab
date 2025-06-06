@@ -3,11 +3,11 @@ import { Modal, Setting, App } from "obsidian";
 import * as alphaTab from "@coderline/alphatab";
 
 export class TracksModal extends Modal {
-	tracks: alphaTab.Track[];
-	renderTracks: Set<alphaTab.Track>;
-	onChange?: (tracks?: alphaTab.Track[]) => void;
+	tracks: alphaTab.model.Track[];
+	renderTracks: Set<alphaTab.model.Track>;
+	onChange?: (tracks?: alphaTab.model.Track[]) => void;
 
-	constructor(app: App, tracks: alphaTab.Track[], onChange?: TracksModal["onChange"]) {
+	constructor(app: App, tracks: alphaTab.model.Track[], onChange?: TracksModal["onChange"]) {
 		super(app);
 		this.tracks = tracks;
 		this.onChange = onChange;
@@ -58,11 +58,11 @@ export class TracksModal extends Modal {
 	onClose = () => {
 		this.contentEl.empty();
 	};
-	setTracks(tracks: alphaTab.Track[]) {
+	setTracks(tracks: alphaTab.model.Track[]) {
 		this.tracks = tracks;
 		this.renderTracks = new Set(tracks.length > 0 ? [tracks[0]] : []);
 	}
-	setRenderTracks(tracks: alphaTab.Track[]) {
+	setRenderTracks(tracks: alphaTab.model.Track[]) {
 		this.renderTracks = new Set(tracks);
 	}
 }
