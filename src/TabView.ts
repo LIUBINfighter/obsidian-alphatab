@@ -1,11 +1,10 @@
 // TabView.ts
-import { FileView, TFile, WorkspaceLeaf, Notice, App } from "obsidian";
+import { FileView, TFile, WorkspaceLeaf, Notice } from "obsidian";
 import * as alphaTab from "@coderline/alphatab";
 import { AlphaTabUIManager } from "./AlphaTabUIManager";
 import { AlphaTabManager, AlphaTabManagerOptions } from "./AlphaTabManager";
 import * as AlphaTabEventHandlers from "./AlphaTabEventHandlers";
 import { TracksSidebar } from "./TracksSidebar";
-import { saveToFile } from "./utils";
 
 // 使用命名空间下的类型
 type PlayerStateChangedEventArgs = any;

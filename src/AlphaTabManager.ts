@@ -2,9 +2,7 @@
 
 import * as alphaTab from "@coderline/alphatab";
 import {
-	model,
 	LayoutMode,
-	ScrollMode,
 	type AlphaTabApi,
 	type Settings,
 	WebPlatform,
@@ -44,7 +42,7 @@ export class AlphaTabManager {
 	public score: alphaTab.model.Score | null = null;
 	private renderTracks: alphaTab.model.Track[] = [];
 	private renderWidth = 800;
-	private darkMode: boolean = false;
+	private darkMode = false;
 	private static readonly FONT_STYLE_ELEMENT_ID =
 		"alphatab-manual-font-styles";
 
@@ -73,13 +71,13 @@ export class AlphaTabManager {
 						selectionColor: "rgba(80, 130, 180, 0.7)",
 						barSeparatorColor: "rgba(200, 200, 200, 0.7)",
 						staffLineColor: "rgba(200, 200, 200, 1)",
-				  }
+                  }
 				: {
 						scoreColor: "rgba(0, 0, 0, 1)",
 						selectionColor: "rgba(0, 120, 255, 0.5)",
 						barSeparatorColor: "rgba(0, 0, 0, 0.2)",
 						staffLineColor: "rgba(0, 0, 0, 1)",
-				  };
+                  };
 			Object.assign(this.settings.display.resources, themeColors);
 			this.api.settings = this.settings; // Re-apply settings
 			this.api.render();

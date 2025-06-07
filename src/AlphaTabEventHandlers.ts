@@ -1,7 +1,5 @@
 // AlphaTabEventHandlers.ts
 // 可选：复杂事件处理逻辑可集中于此
-import * as alphaTab from "@coderline/alphatab";
-import type { AlphaTabManager } from "./AlphaTabManager";
 import type { AlphaTabUIManager } from "./AlphaTabUIManager";
 import { Notice } from "obsidian";
 

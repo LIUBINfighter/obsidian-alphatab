@@ -1,5 +1,5 @@
 // main.ts
-import { Plugin, TFile, WorkspaceLeaf } from "obsidian";
+import { Plugin, TFile } from "obsidian";
 import { TabView, VIEW_TYPE_TAB } from "./TabView";
 import * as path from "path";
 import * as fs from "fs";
