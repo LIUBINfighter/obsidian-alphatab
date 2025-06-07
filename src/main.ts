@@ -72,6 +72,28 @@ export default class AlphaTabPlugin extends Plugin {
 		// 添加右键菜单项用于打开吉他谱文件
 		this.registerEvent(
 			this.app.workspace.on("file-menu", (menu, file) => {
+				// 新建 AlphaTab 文件菜单项
+				menu.addItem((item) => {
+					item.setTitle("新建 AlphaTab 文件")
+						.setIcon("plus")
+						.onClick(async () => {
+							const parent = file instanceof TFile ? this.app.vault.getAbstractFileByPath(path.dirname(file.path)) : file;
+							const baseName = "新建吉他谱";
+							let filename = `${baseName}.alphatab`;
+							let i = 1;
+							while (await this.app.vault.adapter.exists(path.join((parent as any).path, filename))) {
+								filename = `${baseName} ${i}.alphatab`;
+								i++;
+							}
+							const newFilePath = path.join((parent as any).path, filename);
+							await this.app.vault.create(newFilePath, "");
+							const newFile = this.app.vault.getAbstractFileByPath(newFilePath);
+							if (newFile instanceof TFile) {
+								const leaf = this.app.workspace.getLeaf(false);
+								await leaf.openFile(newFile);
+							}
+						});
+				});
 				if (
 					file instanceof TFile &&
 					isGuitarProFile(file.extension)
