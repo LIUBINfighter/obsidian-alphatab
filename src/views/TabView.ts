@@ -24,8 +24,7 @@ export class TabView extends FileView {
 		this.pluginInstance = plugin; // 保存插件实例
 
 		this.containerEl.addClasses([
-			"alphatab-obsidian-plugin",
-			"gtp-preview-container",
+			"itab"
 		]);
 
 		// 添加视图操作按钮

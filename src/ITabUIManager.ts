@@ -1,9 +1,9 @@
 // ITabUIManager.ts
-import { PlayPauseButton } from "./components/playPauseButton";
-import { TimePositionDisplay } from "./components/TimePositionDisplay";
-import { StopButton } from "./components/StopButton";
-import { SelectControl } from "./components/SelectControl";
-import { ToggleButton } from "./components/ToggleButton";
+import { PlayPauseButton } from "./components/controls/playPauseButton";
+import { TimePositionDisplay } from "./components/controls/TimePositionDisplay";
+import { StopButton } from "./components/controls/StopButton";
+import { SelectControl } from "./components/controls/SelectControl";
+import { ToggleButton } from "./components/controls/ToggleButton";
 
 // 负责 AlphaTab 相关 UI 元素的创建与管理
 
