@@ -1,4 +1,10 @@
 // AlphaTabUIManager.ts
+import { PlayPauseButton } from "./components/playPauseButton";
+import { TimePositionDisplay } from "./components/TimePositionDisplay";
+import { StopButton } from "./components/StopButton";
+import { SelectControl } from "./components/SelectControl";
+import { ToggleButton } from "./components/ToggleButton";
+
 // 负责 AlphaTab 相关 UI 元素的创建与管理
 
 export interface AlphaTabUIManagerOptions {
@@ -12,17 +18,17 @@ export class AlphaTabUIManager {
 	public atMainRef!: HTMLElement;
 	public atViewportRef!: HTMLElement;
 	public atControlsRef!: HTMLElement;
-	public playPauseButton!: HTMLButtonElement;
-	public stopButton!: HTMLButtonElement;
+	public playPauseButton!: PlayPauseButton;
+	public stopButton!: StopButton;
 	// 新增的UI元素
-	public timePositionSpan!: HTMLSpanElement;
-	public layoutControl!: HTMLSelectElement;
-	public zoomControl!: HTMLSelectElement;
-	public speedControl!: HTMLSelectElement;
-	public metronomeButton!: HTMLButtonElement;
-	public countInButton!: HTMLButtonElement;
-	public savePdfButton!: HTMLButtonElement;
-	public savePngButton!: HTMLButtonElement;
+	public timePositionDisplay!: TimePositionDisplay;
+	public layoutControl!: SelectControl;
+	public zoomControl!: SelectControl;
+	public speedControl!: SelectControl;
+	public metronomeButton!: ToggleButton;
+	public countInButton!: ToggleButton;
+	public savePdfButton!: ToggleButton;
+	public savePngButton!: ToggleButton;
 
 	constructor(options: AlphaTabUIManagerOptions) {
 		this.createUI(options.container);
@@ -48,71 +54,94 @@ export class AlphaTabUIManager {
 		
 		// 时间显示元素
 		const timePositionDiv = this.atControlsRef.createDiv({ cls: "time-position" });
-		this.timePositionSpan = timePositionDiv.createSpan();
-		this.timePositionSpan.textContent = "00:00 / 00:00";
+		this.timePositionDisplay = new TimePositionDisplay(timePositionDiv, {
+			initialText: "00:00 / 00:00",
+			className: "time-position-display"
+		});
 		
 		// 播放控制按钮
-		this.playPauseButton = this.atControlsRef.createEl("button", {
-			text: "播放", // 原为 "Play"
-			cls: "play-pause",
+		this.playPauseButton = new PlayPauseButton(this.atControlsRef, {
+			onClick: onPlayPause,
+			initialText: "播放",
+			className: "play-pause"
 		});
-		this.playPauseButton.addEventListener("click", onPlayPause);
 		
-		this.stopButton = this.atControlsRef.createEl("button", {
-			text: "停止", // 原为 "Stop"
-			cls: "stop",
+		this.stopButton = new StopButton(this.atControlsRef, {
+			onClick: onStop,
+			initialText: "停止",
+			className: "stop"
 		});
-		this.stopButton.disabled = true;
-		this.stopButton.addEventListener("click", onStop);
+		this.stopButton.setEnabled(false);
 		
 		// 布局控制下拉框
 		const layoutDiv = this.atControlsRef.createDiv({ cls: "layout-control" });
-		layoutDiv.createSpan({ text: "布局：" });
-		this.layoutControl = layoutDiv.createEl("select");
-		["页面", "水平", "垂直"].forEach(option => {
-			this.layoutControl.createEl("option", { text: option, value: option });
+		this.layoutControl = new SelectControl({
+			label: "布局：",
+			options: [
+				{ value: "页面", text: "页面" },
+				{ value: "水平", text: "水平" },
+				{ value: "垂直", text: "垂直" }
+			]
 		});
+		layoutDiv.appendChild(this.layoutControl.render());
 		
 		// 缩放控制下拉框
 		const zoomDiv = this.atControlsRef.createDiv({ cls: "zoom-control" });
-		zoomDiv.createSpan({ text: "缩放：" });
-		this.zoomControl = zoomDiv.createEl("select");
-		["0.5x", "0.75x", "1x", "1.25x", "1.5x", "2x"].forEach(option => {
-			this.zoomControl.createEl("option", { text: option, value: option });
+		this.zoomControl = new SelectControl({
+			label: "缩放：",
+			options: [
+				{ value: "0.5x", text: "0.5x" },
+				{ value: "0.75x", text: "0.75x" },
+				{ value: "1x", text: "1x" },
+				{ value: "1.25x", text: "1.25x" },
+				{ value: "1.5x", text: "1.5x" },
+				{ value: "2x", text: "2x" }
+			],
+			defaultValue: "1x"
 		});
-		this.zoomControl.value = "1x";
+		zoomDiv.appendChild(this.zoomControl.render());
 		
 		// 速度控制下拉框
 		const speedDiv = this.atControlsRef.createDiv({ cls: "speed-control" });
-		speedDiv.createSpan({ text: "速度：" });
-		this.speedControl = speedDiv.createEl("select");
-		["0.25", "0.5", "0.75", "1", "1.25", "1.5", "2"].forEach(option => {
-			this.speedControl.createEl("option", { text: `${option}x`, value: option });
+		this.speedControl = new SelectControl({
+			label: "速度：",
+			options: [
+				{ value: "0.25", text: "0.25x" },
+				{ value: "0.5", text: "0.5x" },
+				{ value: "0.75", text: "0.75x" },
+				{ value: "1", text: "1x" },
+				{ value: "1.25", text: "1.25x" },
+				{ value: "1.5", text: "1.5x" },
+				{ value: "2", text: "2x" }
+			],
+			defaultValue: "1"
 		});
-		this.speedControl.value = "1";
+		speedDiv.appendChild(this.speedControl.render());
 		
 		// 节拍器按钮
-		this.metronomeButton = this.atControlsRef.createEl("button", {
+		this.metronomeButton = new ToggleButton({
 			text: "节拍器",
-			cls: "metronome",
+			active: false
 		});
+		this.atControlsRef.appendChild(this.metronomeButton.getElement());
 		
 		// 前置四拍按钮
-		this.countInButton = this.atControlsRef.createEl("button", {
+		this.countInButton = new ToggleButton({
 			text: "前置四拍",
-			cls: "count-in",
+			active: false
 		});
+		this.atControlsRef.appendChild(this.countInButton.getElement());
 		
 		// 保存按钮
-		this.savePdfButton = this.atControlsRef.createEl("button", {
-			text: "保存PDF",
-			cls: "save-pdf",
+		this.savePdfButton = new ToggleButton({
+			text: "保存PDF"
 		});
+		this.atControlsRef.appendChild(this.savePdfButton.getElement());
 		
-		this.savePngButton = this.atControlsRef.createEl("button", {
-			text: "保存PNG",
-			cls: "save-png",
+		this.savePngButton = new ToggleButton({
+			text: "保存PNG"
 		});
+		this.atControlsRef.appendChild(this.savePngButton.getElement());
 	}
 
 	showLoadingOverlay(message: string) {
@@ -132,33 +161,25 @@ export class AlphaTabUIManager {
 		if (this.playPauseButton) this.playPauseButton.setText(text);
 	}
 	setStopButtonEnabled(enabled: boolean) {
-		if (this.stopButton) this.stopButton.disabled = !enabled;
+		if (this.stopButton) this.stopButton.setEnabled(enabled);
 	}
 	
 	// 新增的辅助方法
 	updateTimePosition(currentTime: string, totalTime: string) {
-		if (this.timePositionSpan) {
-			this.timePositionSpan.textContent = `${currentTime} / ${totalTime}`;
+		if (this.timePositionDisplay) {
+			this.timePositionDisplay.setText(`${currentTime} / ${totalTime}`);
 		}
 	}
 	
 	setMetronomeActive(active: boolean) {
 		if (this.metronomeButton) {
-			if (active) {
-				this.metronomeButton.addClass("active");
-			} else {
-				this.metronomeButton.removeClass("active");
-			}
+			this.metronomeButton.setActive(active);
 		}
 	}
 	
 	setCountInActive(active: boolean) {
 		if (this.countInButton) {
-			if (active) {
-				this.countInButton.addClass("active");
-			} else {
-				this.countInButton.removeClass("active");
-			}
+			this.countInButton.setActive(active);
 		}
 	}
 }
