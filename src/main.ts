@@ -1,6 +1,7 @@
 // main.ts
 import { Plugin, TFile } from "obsidian";
 import { TabView, VIEW_TYPE_TAB } from "./views/TabView";
+import { TexEditorView, VIEW_TYPE_TEX_EDITOR } from "./views/TexEditorView";
 import * as path from "path";
 import * as fs from "fs";
 import { registerStyles, isGuitarProFile } from "./utils/utils";
@@ -59,14 +60,22 @@ export default class AlphaTabPlugin extends Plugin {
 		// 注册吉他谱文件扩展名的查看器
 		this.registerView(VIEW_TYPE_TAB, (leaf) => {
 			const view = new TabView(leaf, this);
-			// TabView 内部会通过 this.pluginInstance.actualPluginDir 访问
 			return view;
+		});
+
+		// 注册 AlphaTab/AlphaTex 编辑器视图
+		this.registerView(VIEW_TYPE_TEX_EDITOR, (leaf) => {
+			return new TexEditorView(leaf, this);
 		});
 
 		// 注册文件扩展名处理
 		this.registerExtensions(
 			["gp", "gp3", "gp4", "gp5", "gpx", "gp7"],
 			VIEW_TYPE_TAB
+		);
+		this.registerExtensions(
+			["alphatab", "alphatex"],
+			VIEW_TYPE_TEX_EDITOR
 		);
 
 		// 添加右键菜单项用于打开吉他谱文件
@@ -111,6 +120,23 @@ export default class AlphaTabPlugin extends Plugin {
 							});
 					});
 				}
+				if (
+					file instanceof TFile &&
+					["alphatab", "alphatex"].includes(file.extension)
+				) {
+					menu.addItem((item) => {
+						item.setTitle("用 AlphaTab 编辑器打开")
+							.setIcon("pencil")
+							.onClick(async () => {
+								const leaf = this.app.workspace.getLeaf(false);
+								await leaf.setViewState({
+									type: VIEW_TYPE_TEX_EDITOR,
+									state: { file: file.path },
+								});
+								this.app.workspace.revealLeaf(leaf);
+							});
+					});
+				}
 			})
 		);
 
@@ -120,6 +146,7 @@ export default class AlphaTabPlugin extends Plugin {
 	onunload() {
 		// 清理工作
 		this.app.workspace.detachLeavesOfType(VIEW_TYPE_TAB);
+		this.app.workspace.detachLeavesOfType(VIEW_TYPE_TEX_EDITOR);
 		console.log("AlphaTab Plugin Unloaded");
 	}
 

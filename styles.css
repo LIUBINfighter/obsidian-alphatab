@@ -1,221 +1,230 @@
 /* styles.css */
 /* Add this class to your TabView's containerEl */
 .itab .at-wrap {
-  width: 100%;
-  height: 100%;
-  margin: 0 auto;
-  /* border: 1px solid rgba(0, 0, 0, 0.12); */ /* Obsidian handles borders */
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  position: relative;
-  box-sizing: border-box;
+	width: 100%;
+	height: 100%;
+	margin: 0 auto;
+	/* border: 1px solid rgba(0, 0, 0, 0.12); */ /* Obsidian handles borders */
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	position: relative;
+	box-sizing: border-box;
 }
 
 .itab .at-content {
-  position: relative;
-  overflow: hidden;
-  flex: 1 1 auto;
-  box-sizing: border-box;
-  display: flex; /* Make viewport take remaining space */
-  flex-direction: column;
+	position: relative;
+	overflow: hidden;
+	flex: 1 1 auto;
+	box-sizing: border-box;
+	display: flex; /* Make viewport take remaining space */
+	flex-direction: column;
 }
 
 .itab .at-viewport {
-  overflow-y: auto;
-  overflow-x: hidden; /* Usually you want vertical scroll for page layout */
-  flex-grow: 1; /* Takes up available space in at-content */
-  position: relative; /* For absolute positioned children like cursor */
-  /* scroll-behavior: smooth; // AlphaTab handles its own scroll typically */
-  /* scroll-padding-top: 30px; */
-  box-sizing: border-box;
+	overflow-y: auto;
+	overflow-x: hidden; /* Usually you want vertical scroll for page layout */
+	flex-grow: 1; /* Takes up available space in at-content */
+	position: relative; /* For absolute positioned children like cursor */
+	/* scroll-behavior: smooth; // AlphaTab handles its own scroll typically */
+	/* scroll-padding-top: 30px; */
+	box-sizing: border-box;
 }
 
 /* Main AlphaTab rendering area */
 .itab .at-main {
-    width: 100%; /* Ensure it fills the viewport horizontally */
+	width: 100%; /* Ensure it fills the viewport horizontally */
 }
 
-
 .itab .at-controls {
-  flex: 0 0 auto; /* Do not grow or shrink, take needed height */
-  padding: 8px;
-  background-color: var(--background-secondary); /* Obsidian theme variable */
-  border-top: 1px solid var(--background-modifier-border);
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  align-items: center;
-  flex-wrap: wrap; /* 允许控件换行显示 */
+	flex: 0 0 auto; /* Do not grow or shrink, take needed height */
+	padding: 8px;
+	background-color: var(--background-secondary); /* Obsidian theme variable */
+	border-top: 1px solid var(--background-modifier-border);
+	display: flex;
+	gap: 8px;
+	justify-content: center;
+	align-items: center;
+	flex-wrap: wrap; /* 允许控件换行显示 */
 }
 
 .itab .at-controls button {
-  /* Basic styling, Obsidian might style these by default */
-  padding: 5px 10px;
-  border-radius: 4px;
-  background-color: var(--interactive-normal);
-  border: 1px solid var(--background-modifier-border);
-  color: var(--text-normal);
-  cursor: pointer;
+	/* Basic styling, Obsidian might style these by default */
+	padding: 5px 10px;
+	border-radius: 4px;
+	background-color: var(--interactive-normal);
+	border: 1px solid var(--background-modifier-border);
+	color: var(--text-normal);
+	cursor: pointer;
 }
 
 .itab .at-controls button:hover {
-  background-color: var(--interactive-hover);
+	background-color: var(--interactive-hover);
 }
 
 .itab .at-controls button.active {
-  background-color: var(--interactive-accent);
-  color: var(--text-on-accent);
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
 }
 
 .itab .at-controls button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+	opacity: 0.5;
+	cursor: not-allowed;
 }
 
 .itab .time-position {
-  font-family: monospace;
-  padding: 5px 10px;
-  background-color: var(--background-primary);
-  border-radius: 4px;
-  border: 1px solid var(--background-modifier-border);
+	font-family: monospace;
+	padding: 5px 10px;
+	background-color: var(--background-primary);
+	border-radius: 4px;
+	border: 1px solid var(--background-modifier-border);
 }
 
 .itab .layout-control,
 .itab .zoom-control,
 .itab .speed-control {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+	display: flex;
+	align-items: center;
+	gap: 4px;
 }
 
 .itab .at-controls select {
-  padding: 4px 8px;
-  border-radius: 4px;
-  border: 1px solid var(--background-modifier-border);
-  background-color: var(--background-primary);
-  color: var(--text-normal);
+	padding: 4px 8px;
+	border-radius: 4px;
+	border: 1px solid var(--background-modifier-border);
+	background-color: var(--background-primary);
+	color: var(--text-normal);
 }
 
 .itab .at-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1002; /* High z-index */
-  backdrop-filter: blur(2px);
-  background: rgba(var(--color-base-rgb), 0.3); /* Use Obsidian's base color with alpha */
-  display: flex; /* Used by JS to show/hide */
-  justify-content: center;
-  align-items: center; /* Center content vertically too */
-  box-sizing: border-box;
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 1002; /* High z-index */
+	backdrop-filter: blur(2px);
+	background: rgba(
+		var(--color-base-rgb),
+		0.3
+	); /* Use Obsidian's base color with alpha */
+	display: flex; /* Used by JS to show/hide */
+	justify-content: center;
+	align-items: center; /* Center content vertically too */
+	box-sizing: border-box;
 }
 
 .itab .at-overlay-content {
-  background: var(--background-primary); /* Obsidian theme variable */
-  color: var(--text-normal);
-  box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.2);
-  padding: 15px 25px;
-  border-radius: 6px;
-  text-align: center;
-  box-sizing: border-box;
+	background: var(--background-primary); /* Obsidian theme variable */
+	color: var(--text-normal);
+	box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.2);
+	padding: 15px 25px;
+	border-radius: 6px;
+	text-align: center;
+	box-sizing: border-box;
 }
 
 .itab .at-overlay.error .at-overlay-content {
-    background-color: var(--background-modifier-error);
-    color: var(--text-on-error);
-    border: 1px solid var(--color-red);
+	background-color: var(--background-modifier-error);
+	color: var(--text-on-error);
+	border: 1px solid var(--color-red);
 }
 
 /* AlphaTab Player Cursors/Highlights (from your Vue styles) */
 /* These need to target classes generated by AlphaTab within .at-main */
 .itab .at-main .at-cursor-bar {
-  background-color: rgba(var(--color-yellow-rgb), 0.25) !important; /* Use Obsidian's yellow if available, or fallback */
+	background-color: rgba(
+		var(--color-yellow-rgb),
+		0.25
+	) !important; /* Use Obsidian's yellow if available, or fallback */
 }
 
 .itab .at-main .at-cursor-beat {
-  background-color: rgba(var(--color-blue-rgb), 0.75) !important; /* Use Obsidian's blue */
-  /* width: 3px; */ /* AlphaTab usually controls this */
+	background-color: rgba(
+		var(--color-blue-rgb),
+		0.75
+	) !important; /* Use Obsidian's blue */
+	/* width: 3px; */ /* AlphaTab usually controls this */
 }
 
-.itab .at-main .at-highlight * { /* Target children of .at-highlight */
-  fill: var(--color-accent) !important; /* Obsidian's accent color */
-  stroke: var(--color-accent) !important;
+.itab .at-main .at-highlight * {
+	/* Target children of .at-highlight */
+	fill: var(--color-accent) !important; /* Obsidian's accent color */
+	stroke: var(--color-accent) !important;
 }
 
 /* Ensure Obsidian's default scrollbar styling is used or customize as needed */
 .itab .at-viewport {
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb-bg) var(--scrollbar-bg);
+	scrollbar-width: thin;
+	scrollbar-color: var(--scrollbar-thumb-bg) var(--scrollbar-bg);
 }
 
 .itab .at-viewport::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+	width: 8px;
+	height: 8px;
 }
 
 .itab .at-viewport::-webkit-scrollbar-thumb {
-  background-color: var(--scrollbar-thumb-bg);
-  border-radius: 4px;
+	background-color: var(--scrollbar-thumb-bg);
+	border-radius: 4px;
 }
 
 .itab .at-viewport::-webkit-scrollbar-track {
-  background: var(--scrollbar-bg);
+	background: var(--scrollbar-bg);
 }
 
 /* 添加新的布局容器样式 */
 .itab .at-layout-container {
-  display: flex;
-  width: 100%;
-  height: 100%;
+	display: flex;
+	width: 100%;
+	height: 100%;
 }
 
 .itab .at-main-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
 }
 
 /* 侧边栏样式 */
 .itab .at-tracks-sidebar {
-  display: flex;
-  flex-direction: column;
-  width: 250px;
-  border-right: 1px solid var(--background-modifier-border);
-  background-color: var(--background-secondary);
-  height: 100%;
-  overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	width: 250px;
+	border-right: 1px solid var(--background-modifier-border);
+	background-color: var(--background-secondary);
+	height: 100%;
+	overflow: hidden;
 }
 
 .itab .at-sidebar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 15px;
-  border-bottom: 1px solid var(--background-modifier-border);
-  background-color: var(--background-secondary-alt);
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 10px 15px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	background-color: var(--background-secondary-alt);
 }
 
 .itab .at-sidebar-header h3 {
-  margin: 0;
-  font-size: 16px;
+	margin: 0;
+	font-size: 16px;
 }
 
 .itab .at-sidebar-close {
-  cursor: pointer;
-  opacity: 0.7;
+	cursor: pointer;
+	opacity: 0.7;
 }
 
 .itab .at-sidebar-close:hover {
-  opacity: 1;
+	opacity: 1;
 }
 
 .itab .at-sidebar-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 10px;
+	flex: 1;
+	overflow-y: auto;
+	padding: 10px;
 }
 
 /* 移除footer样式，因为不再需要应用按钮
@@ -228,40 +237,319 @@
 */
 
 .itab .at-sidebar-content .setting-item {
-  padding: 10px 0;
-  border-bottom: 1px solid var(--background-modifier-border-subtle);
+	padding: 10px 0;
+	border-bottom: 1px solid var(--background-modifier-border-subtle);
 }
 
 .itab .at-select-all-container {
-  display: flex;
-  justify-content: flex-start;
-  margin-bottom: 10px;
-  font-size: 0.9em;
+	display: flex;
+	justify-content: flex-start;
+	margin-bottom: 10px;
+	font-size: 0.9em;
 }
 
 .itab .at-select-toggle-btn {
-  padding: 4px 12px;
-  border-radius: 4px;
-  background-color: var(--interactive-normal);
-  border: 1px solid var(--background-modifier-border);
-  color: var(--text-normal);
-  cursor: pointer;
-  font-size: 0.85em;
-  transition: all 0.2s ease;
+	padding: 4px 12px;
+	border-radius: 4px;
+	background-color: var(--interactive-normal);
+	border: 1px solid var(--background-modifier-border);
+	color: var(--text-normal);
+	cursor: pointer;
+	font-size: 0.85em;
+	transition: all 0.2s ease;
 }
 
 .itab .at-select-toggle-btn:hover {
-  background-color: var(--interactive-hover);
+	background-color: var(--interactive-hover);
 }
 
 .itab .at-select-toggle-btn.partial {
-  background-color: var(--interactive-accent);
-  color: var(--text-on-accent);
-  opacity: 0.8;
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+	opacity: 0.8;
 }
 
 /* 为"重置为默认"状态添加特殊样式 */
 .itab .at-select-toggle-btn:has-text("重置为默认") {
-  background-color: var(--color-orange);
-  color: var(--text-on-accent);
+	background-color: var(--color-orange);
+	color: var(--text-on-accent);
+}
+
+/* TexEditorView 双栏布局样式 */
+.tex-editor-layout {
+	display: flex;
+	height: 100%;
+	gap: 8px;
+	padding: 8px;
+	box-sizing: border-box;
+}
+
+.tex-editor-left-panel {
+	flex: 1 1 50%;
+	min-width: 300px;
+	border-right: 1px solid var(--background-modifier-border);
+	padding-right: 8px;
+	display: flex;
+	flex-direction: column;
+}
+
+.tex-editor-right-panel {
+	flex: 1 1 50%;
+	min-width: 300px;
+	padding-left: 8px;
+	display: flex;
+	flex-direction: column;
+}
+
+/* TexEditor 组件样式 */
+.at-tex-editor {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+.tex-editor-header {
+	padding: 8px 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+	margin-bottom: 8px;
+}
+
+.tex-editor-title {
+	margin: 0;
+	font-size: 16px;
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.tex-editor-content {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+}
+
+.tex-editor-textarea {
+	flex: 1;
+	width: 100%;
+	min-height: 300px;
+	resize: vertical;
+	font-family: var(--font-monospace, "Courier New", monospace);
+	font-size: 14px;
+	line-height: 1.5;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	padding: 12px;
+	background-color: var(--background-primary);
+	color: var(--text-normal);
+	outline: none;
+	transition: border-color 0.2s ease;
+}
+
+.tex-editor-textarea:focus {
+	border-color: var(--interactive-accent);
+	box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+}
+
+.tex-editor-textarea::placeholder {
+	color: var(--text-muted);
+	font-style: italic;
+}
+
+/* 滚动条样式 */
+.tex-editor-textarea::-webkit-scrollbar {
+	width: 8px;
+}
+
+.tex-editor-textarea::-webkit-scrollbar-track {
+	background: var(--background-secondary);
+	border-radius: 4px;
+}
+
+.tex-editor-textarea::-webkit-scrollbar-thumb {
+	background: var(--background-modifier-border);
+	border-radius: 4px;
+}
+
+.tex-editor-textarea::-webkit-scrollbar-thumb:hover {
+	background: var(--text-muted);
+}
+
+/* AlphaTab 显示区域样式优化 */
+.tex-editor-right-panel .at-main-content {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-height: 400px;
+}
+
+.tex-editor-right-panel .at-wrap {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+}
+
+.tex-editor-right-panel .at-content {
+	flex: 1;
+	position: relative;
+}
+
+.tex-editor-right-panel .at-viewport {
+	height: 100%;
+	overflow: auto;
+}
+
+.tex-editor-right-panel .at-main {
+	min-width: 300px;
+	min-height: 200px;
+}
+
+/* 控制栏样式 */
+.tex-editor-right-panel .at-controls {
+	flex-shrink: 0;
+	padding: 8px 0;
+	border-top: 1px solid var(--background-modifier-border);
+	background-color: var(--background-secondary);
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+/* 覆盖层样式 */
+.tex-editor-right-panel .at-overlay {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(var(--background-primary-rgb), 0.9);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 100;
+}
+
+.tex-editor-right-panel .at-overlay.error {
+	background-color: rgba(
+		var(--background-modifier-error-rgb, 220, 53, 69),
+		0.1
+	);
+}
+
+.tex-editor-right-panel .at-overlay-content {
+	text-align: center;
+	color: var(--text-normal);
+	font-size: 14px;
+	padding: 20px;
+	border-radius: 8px;
+	background-color: var(--background-primary);
+	box-shadow: var(--shadow-s);
+	max-width: 300px;
+}
+
+.tex-editor-right-panel .at-overlay.error .at-overlay-content {
+	color: var(--text-error);
+	border: 1px solid var(--background-modifier-error);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+	.tex-editor-layout {
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.tex-editor-left-panel,
+	.tex-editor-right-panel {
+		flex: 1 1 auto;
+		min-width: unset;
+		border-right: none;
+		padding-right: 0;
+		padding-left: 0;
+	}
+
+	.tex-editor-left-panel {
+		border-bottom: 1px solid var(--background-modifier-border);
+		padding-bottom: 8px;
+	}
+
+	.tex-editor-right-panel {
+		padding-top: 8px;
+	}
+}
+
+/* 暗色主题适配 */
+.theme-dark .tex-editor-textarea {
+	background-color: var(--background-primary);
+	border-color: var(--background-modifier-border);
+	color: var(--text-normal);
+}
+
+.theme-dark .tex-editor-textarea:focus {
+	border-color: var(--interactive-accent);
+}
+
+/* 高对比度主题支持 */
+@media (prefers-contrast: high) {
+	.tex-editor-textarea {
+		border-width: 2px;
+	}
+
+	.tex-editor-textarea:focus {
+		border-width: 2px;
+		box-shadow: 0 0 0 3px var(--interactive-accent-hover);
+	}
+}
+
+/* 减少动画设置支持 */
+@media (prefers-reduced-motion: reduce) {
+	.tex-editor-textarea {
+		transition: none;
+	}
+}
+
+/* 调整控制按钮在编辑器中的样式 */
+.tex-editor-right-panel .at-controls button {
+	padding: 6px 12px;
+	font-size: 12px;
+	border-radius: 4px;
+	border: 1px solid var(--background-modifier-border);
+	background-color: var(--interactive-normal);
+	color: var(--text-normal);
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.tex-editor-right-panel .at-controls button:hover {
+	background-color: var(--interactive-hover);
+	border-color: var(--interactive-accent);
+}
+
+.tex-editor-right-panel .at-controls button:active {
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.tex-editor-right-panel .at-controls button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* 选择控件样式 */
+.tex-editor-right-panel .at-controls select {
+	padding: 4px 8px;
+	font-size: 12px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background-color: var(--background-primary);
+	color: var(--text-normal);
+}
+
+/* 时间显示样式 */
+.tex-editor-right-panel .time-position {
+	font-family: var(--font-monospace, "Courier New", monospace);
+	font-size: 12px;
+	color: var(--text-muted);
+	padding: 4px 8px;
+	background-color: var(--background-secondary);
+	border-radius: 4px;
 }

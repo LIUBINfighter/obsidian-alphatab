@@ -163,6 +163,70 @@ export class ITabManager {
 		}
 		console.log("[ITabManager] Destroyed.");
 	}
+
+	/**
+	 * 从 AlphaTex 字符串加载乐谱
+	 */
+	async loadFromAlphaTexString(alphaTexContent: string): Promise<void> {
+		if (!this.api) {
+			throw new Error("AlphaTab API 未初始化");
+		}
+
+		try {
+			// 使用 AlphaTab API 从字符串加载
+			this.api.tex(alphaTexContent);
+		} catch (error) {
+			console.error("[ITabManager] 从 AlphaTex 字符串加载失败:", error);
+			throw error;
+		}
+	}
+
+	/**
+	 * 初始化 AlphaTab API（用于 TexEditor）
+	 */
+	async initializeForTexEditor(): Promise<void> {
+		if (!this.pluginInstance.actualPluginDir) {
+			throw new Error("插件错误：根路径未配置，无法初始化 AlphaTab。");
+		}
+
+		// 复用 initializeAndLoadScore 的初始化逻辑，但不加载文件
+		const { initializeAndLoadScore } = await import("./alphatab/initializeAndLoadScore");
+		
+		// 创建一个临时的假文件对象来触发初始化
+		const fakeFile = {
+			path: "temp.alphatex",
+			name: "temp.alphatex",
+			extension: "alphatex"
+		} as any;
+
+		// 备份原始的 vault.readBinary 方法
+		const originalReadBinary = this.app.vault.readBinary;
+		
+		try {
+			// 临时替换 readBinary 方法，防止实际读取文件
+			this.app.vault.readBinary = async () => {
+				throw new Error("Skip file loading for TexEditor");
+			};
+
+			// 调用初始化逻辑（会在文件加载时失败，但 API 已初始化）
+			await initializeAndLoadScore(this, fakeFile);
+		} catch (error) {
+			// 忽略文件加载错误，这是预期的
+			if (!error.message.includes("Skip file loading")) {
+				console.error("[ITabManager] 初始化过程中出现意外错误:", error);
+				throw error;
+			}
+		} finally {
+			// 恢复原始的 readBinary 方法
+			this.app.vault.readBinary = originalReadBinary;
+		}
+
+		if (!this.api) {
+			throw new Error("AlphaTab API 初始化失败");
+		}
+
+		console.log("[ITabManager] AlphaTab API 已为 TexEditor 初始化完成");
+	}
 }
 export type { ITabManagerOptions };
 
