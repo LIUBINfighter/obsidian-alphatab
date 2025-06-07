@@ -1,4 +1,4 @@
-// AlphaTabManager.ts
+// ITabManager.ts
 
 import * as alphaTab from "@coderline/alphatab";
 import {
@@ -13,7 +13,7 @@ import { Notice, TFile, App } from "obsidian";
 import * as fs from "fs";
 import * as path from "path";
 
-export interface AlphaTabManagerOptions {
+export interface ITabManagerOptions {
 	pluginInstance: any;
 	app: App;
 	mainElement: HTMLElement;
@@ -29,13 +29,13 @@ export interface AlphaTabManagerOptions {
 	onReady?: () => void;
 }
 
-export class AlphaTabManager {
+export class ITabManager {
 	// 添加缺失的类属性声明
 	private pluginInstance: any;
 	private app: App;
 	private mainElement: HTMLElement;
 	private viewportElement: HTMLElement;
-	private eventHandlers: AlphaTabManagerOptions;
+	private eventHandlers: ITabManagerOptions;
 	private settings: Settings;
 
 	public api: AlphaTabApi | null = null;
@@ -46,7 +46,7 @@ export class AlphaTabManager {
 	private static readonly FONT_STYLE_ELEMENT_ID =
 		"alphatab-manual-font-styles";
 
-	constructor(options: AlphaTabManagerOptions) {
+	constructor(options: ITabManagerOptions) {
 		this.pluginInstance = options.pluginInstance;
 		this.app = options.app;
 		this.mainElement = options.mainElement;
@@ -103,7 +103,7 @@ export class AlphaTabManager {
 
 		if (!woff2Src && !woffSrc) {
 			console.error(
-				"[AlphaTabManager] No WOFF or WOFF2 data URLs available to inject font faces."
+				"[ITabManager] No WOFF or WOFF2 data URLs available to inject font faces."
 			);
 			return false;
 		}
@@ -127,12 +127,12 @@ export class AlphaTabManager {
 
 		try {
 			const styleEl = document.createElement("style");
-			styleEl.id = AlphaTabManager.FONT_STYLE_ELEMENT_ID;
+			styleEl.id = ITabManager.FONT_STYLE_ELEMENT_ID;
 			styleEl.type = "text/css";
 			styleEl.textContent = css;
 			document.head.appendChild(styleEl);
 			console.log(
-				`[AlphaTabManager] Manually injected @font-face rules for: ${fontFamiliesToDefine.join(
+				`[ITabManager] Manually injected @font-face rules for: ${fontFamiliesToDefine.join(
 					", "
 				)} using WOFF/WOFF2 Data URLs.`
 			);
@@ -141,7 +141,7 @@ export class AlphaTabManager {
 			return true;
 		} catch (e) {
 			console.error(
-				"[AlphaTabManager] Error injecting manual font styles:",
+				"[ITabManager] Error injecting manual font styles:",
 				e
 			);
 			return false;
@@ -150,12 +150,12 @@ export class AlphaTabManager {
 
 	private removeInjectedFontFaces() {
 		const existingStyleEl = document.getElementById(
-			AlphaTabManager.FONT_STYLE_ELEMENT_ID
+			ITabManager.FONT_STYLE_ELEMENT_ID
 		);
 		if (existingStyleEl) {
 			existingStyleEl.remove();
 			console.log(
-				"[AlphaTabManager] Removed previously injected manual font styles."
+				"[ITabManager] Removed previously injected manual font styles."
 			);
 		}
 	}
@@ -173,18 +173,18 @@ export class AlphaTabManager {
 							// @ts-ignore
 							document.fonts.add(loadedFont);
 							console.log(
-								`[AlphaTabManager] FontFace API: Successfully loaded and added '${fontFamily}'.`
+								`[ITabManager] FontFace API: Successfully loaded and added '${fontFamily}'.`
 							);
 						})
 						.catch((err) => {
 							console.warn(
-								`[AlphaTabManager] FontFace API: Error loading '${fontFamily}':`,
+								`[ITabManager] FontFace API: Error loading '${fontFamily}':`,
 								err
 							);
 						});
 				} else {
 					console.warn(
-						`[AlphaTabManager] FontFace API: No WOFF/WOFF2 URL found in smuflFontSources to preload '${fontFamily}'.`
+						`[ITabManager] FontFace API: No WOFF/WOFF2 URL found in smuflFontSources to preload '${fontFamily}'.`
 					);
 				}
 			} else {
@@ -200,7 +200,7 @@ export class AlphaTabManager {
 					if (testEl.parentElement) testEl.remove();
 				}, 100); // Clean up
 				console.log(
-					`[AlphaTabManager] Triggered font preload for '${fontFamily}' via temporary element.`
+					`[ITabManager] Triggered font preload for '${fontFamily}' via temporary element.`
 				);
 			}
 		});
@@ -231,7 +231,7 @@ export class AlphaTabManager {
 				this.api.destroy();
 			} catch (e) {
 				console.error(
-					"[AlphaTabManager] Error destroying previous API:",
+					"[ITabManager] Error destroying previous API:",
 					e
 				);
 			}
@@ -276,17 +276,17 @@ export class AlphaTabManager {
 		const soundFontAssetObsidianPath = pluginManifestDir + soundFontFileSuffix;
 		if (await this.app.vault.adapter.exists(soundFontAssetObsidianPath)) {
 			this.settings.player.soundFont = this.app.vault.adapter.getResourcePath(soundFontAssetObsidianPath);
-			console.log(`[AlphaTabManager] Settings: player.soundFont = ${this.settings.player.soundFont}`);
+			console.log(`[ITabManager] Settings: player.soundFont = ${this.settings.player.soundFont}`);
 		} else {
 			this.settings.player.soundFont = null;
 			this.settings.player.enablePlayer = false; // 找不到则禁用
-			console.error(`[AlphaTabManager] SoundFont file NOT FOUND at '${soundFontAssetObsidianPath}'. Player disabled.`);
+			console.error(`[ITabManager] SoundFont file NOT FOUND at '${soundFontAssetObsidianPath}'. Player disabled.`);
 			this.eventHandlers.onError?.({ message: "音色库文件丢失，播放功能已禁用。" });
 		}
 		// === Player/SoundFont 支持 end ===
 
 		console.log(
-			"[AlphaTabManager] Manual @font-face + Data URL Mode: Workers/Player disabled."
+			"[ITabManager] Manual @font-face + Data URL Mode: Workers/Player disabled."
 		);
 
 		// 移除重复声明，直接使用 pluginManifestDir
@@ -294,7 +294,7 @@ export class AlphaTabManager {
 			/* ... error handling ... */ return;
 		}
 		console.log(
-			`[AlphaTabManager] Plugin manifest dir: ${pluginManifestDir}`
+			`[ITabManager] Plugin manifest dir: ${pluginManifestDir}`
 		);
 
 		// --- Main AlphaTab Script File URL (core.scriptFile) ---
@@ -307,12 +307,12 @@ export class AlphaTabManager {
 					mainScriptAssetObsidianPath
 				);
 			console.log(
-				`[AlphaTabManager] Settings: core.scriptFile = ${this.settings.core.scriptFile}`
+				`[ITabManager] Settings: core.scriptFile = ${this.settings.core.scriptFile}`
 			);
 		} else {
 			this.settings.core.scriptFile = null;
 			console.error(
-				`[AlphaTabManager] Main AlphaTab script (alphatab.js) NOT FOUND at '${mainScriptAssetObsidianPath}'.`
+				`[ITabManager] Main AlphaTab script (alphatab.js) NOT FOUND at '${mainScriptAssetObsidianPath}'.`
 			);
 		}
 
@@ -328,7 +328,7 @@ export class AlphaTabManager {
 			this.settings.core.fontDirectory = "/alphatab-virtual-fonts/"; // A plausible relative path
 		}
 		console.log(
-			`[AlphaTabManager] Settings: core.fontDirectory (for satisfying internal checks) = ${this.settings.core.fontDirectory}`
+			`[ITabManager] Settings: core.fontDirectory (for satisfying internal checks) = ${this.settings.core.fontDirectory}`
 		);
 
 		// --- Load Fonts as Data URLs AND INJECT @font-face ---
@@ -356,7 +356,7 @@ export class AlphaTabManager {
 					fontDataUrlsForCss[fontInfo.ext] = dataUrl; // For manual CSS injection
 					actualSmuflFontFilesLoaded = true;
 					console.log(
-						`[AlphaTabManager] Encoded ${fontInfo.name} as Data URL.`
+						`[ITabManager] Encoded ${fontInfo.name} as Data URL.`
 					);
 				} else {
 					/* ... warning ... */
@@ -375,7 +375,7 @@ export class AlphaTabManager {
 				try {
 					smuflFontData["json"] = JSON.parse(metadataStr);
 					console.log(
-						`[AlphaTabManager] Parsed ${metadataFile} and added to smuflFontData.json.`
+						`[ITabManager] Parsed ${metadataFile} and added to smuflFontData.json.`
 					);
 				} catch (jsonError) {
 					/* ... error handling ... */
@@ -388,14 +388,14 @@ export class AlphaTabManager {
 				// @ts-ignore
 				this.settings.core.smuflFontSources = smuflFontData; // Provide to AlphaTab
 				console.log(
-					"[AlphaTabManager] Settings: core.smuflFontSources populated. Keys:",
+					"[ITabManager] Settings: core.smuflFontSources populated. Keys:",
 					Object.keys(smuflFontData)
 				);
 
 				// MANUALLY INJECT @font-face rules
 				if (!this.injectFontFaces(fontDataUrlsForCss)) {
 					console.error(
-						"[AlphaTabManager] Failed to manually inject @font-face styles. Font rendering will likely fail."
+						"[ITabManager] Failed to manually inject @font-face styles. Font rendering will likely fail."
 					);
 					// this.eventHandlers.onError?.({message: "手动注入字体样式失败。"}); // Optional: report error
 				}
@@ -415,13 +415,13 @@ export class AlphaTabManager {
 		// 	21
 		// );
 		console.log(
-			"[AlphaTabManager] Settings: Using default SMuFL font configuration"
+			"[ITabManager] Settings: Using default SMuFL font configuration"
 		);
 
 		const initialThemeColors = this.darkMode; /* ... theme colors ... */
 		Object.assign(this.settings.display.resources, initialThemeColors);
 		console.log(
-			"[AlphaTabManager] Final AlphaTab Settings:",
+			"[ITabManager] Final AlphaTab Settings:",
 			JSON.parse(JSON.stringify(this.settings))
 		);
 
@@ -441,18 +441,18 @@ export class AlphaTabManager {
 				// @ts-ignore
 				alphaTab.Environment.webPlatform = WebPlatform.Browser;
 				console.log(
-					"[AlphaTabManager] Environment.webPlatform overridden."
+					"[ITabManager] Environment.webPlatform overridden."
 				);
 			}
 
-			console.log("[AlphaTabManager] Initializing AlphaTabApi...");
+			console.log("[ITabManager] Initializing AlphaTabApi...");
 
 			this.api = new alphaTab.AlphaTabApi(
 				this.mainElement,
 				this.settings
 			);
 			console.log(
-				"[AlphaTabManager] AlphaTabApi instantiated. API object:",
+				"[ITabManager] AlphaTabApi instantiated. API object:",
 				this.api
 			);
 
@@ -468,7 +468,7 @@ export class AlphaTabManager {
 					"playerReady",
 					"ready",
 				];
-				console.log("[AlphaTabManager] Checking API event emitters:");
+				console.log("[ITabManager] Checking API event emitters:");
 				eventNames.forEach((eventName) => {
 					/* ... event emitter check ... */
 				});
@@ -525,17 +525,17 @@ export class AlphaTabManager {
 					this.renderTracks = [];
 				}
 				console.log(
-					"[AlphaTabManager] Internal scoreLoaded. Score:",
+					"[ITabManager] Internal scoreLoaded. Score:",
 					score?.title,
 					"Tracks:",
 					score?.tracks?.length
 				);
 				this.eventHandlers.onScoreLoaded?.(score);
 			});
-			console.log(`[AlphaTabManager] Bound handler for 'scoreLoaded'.`);
+			console.log(`[ITabManager] Bound handler for 'scoreLoaded'.`);
 		} else {
 			console.error(
-				`[AlphaTabManager] FAILED to bind event 'scoreLoaded'. Emitter missing/invalid:`,
+				`[ITabManager] FAILED to bind event 'scoreLoaded'. Emitter missing/invalid:`,
 				scoreLoadedEmitter
 			);
 		}
@@ -576,6 +576,6 @@ export class AlphaTabManager {
 			this.api.destroy();
 			this.api = null;
 		}
-		console.log("[AlphaTabManager] Destroyed.");
+		console.log("[ITabManager] Destroyed.");
 	}
 }

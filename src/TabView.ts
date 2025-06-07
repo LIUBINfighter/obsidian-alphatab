@@ -1,9 +1,9 @@
 // TabView.ts
 import { FileView, TFile, WorkspaceLeaf, Notice } from "obsidian";
 import * as alphaTab from "@coderline/alphatab";
-import { AlphaTabUIManager } from "./AlphaTabUIManager";
-import { AlphaTabManager, AlphaTabManagerOptions } from "./AlphaTabManager";
-import * as AlphaTabEventHandlers from "./AlphaTabEventHandlers";
+import { ITabUIManager } from "./ITabUIManager";
+import { ITabManager, ITabManagerOptions } from "./ITabManager";
+import * as ITabEventHandlers from "./ITabEventHandlers";
 import { TracksSidebar } from "./TracksSidebar";
 
 // 使用命名空间下的类型
@@ -13,8 +13,8 @@ export const VIEW_TYPE_TAB = "tab-view";
 
 export class TabView extends FileView {
 	private currentFile: TFile | null = null;
-	private uiManager!: AlphaTabUIManager;
-	private atManager!: AlphaTabManager;
+	private uiManager!: ITabUIManager;
+	private atManager!: ITabManager;
 	private tracksSidebar!: TracksSidebar;
 	private mainContentEl!: HTMLElement;
 	private pluginInstance: any; // 主插件实例
@@ -47,7 +47,7 @@ export class TabView extends FileView {
 	}
 
 	getDisplayText() {
-		// 从 AlphaTabManager 获取乐谱信息来更新标题
+		// 从 ITabManager 获取乐谱信息来更新标题
 		if (this.atManager && this.atManager.score) {
 			return `${this.atManager.score.title || "未命名乐谱"} - ${
 				this.atManager.score.artist || "未知艺术家"
@@ -79,7 +79,7 @@ export class TabView extends FileView {
 		this.mainContentEl = layoutContainer.createDiv({ cls: "at-main-content" });
 
 		// 1. 初始化 UI 管理器
-		this.uiManager = new AlphaTabUIManager({ container: this.mainContentEl });
+		this.uiManager = new ITabUIManager({ container: this.mainContentEl });
 		this.uiManager.renderControlBar(
 			() => this.atManager?.playPause(), // Play/Pause 点击回调
 			() => this.atManager?.stop() // Stop 点击回调
@@ -100,13 +100,13 @@ export class TabView extends FileView {
 		}
 
 		// 2. 初始化 AlphaTab 管理器
-		const managerOptions: AlphaTabManagerOptions = {
+		const managerOptions: ITabManagerOptions = {
 			pluginInstance: this.pluginInstance,
 			app: this.app, // 传递 App 实例
 			mainElement: this.uiManager.atMainRef, // AlphaTab 渲染的主元素
 			viewportElement: this.uiManager.atViewportRef, // AlphaTab 滚动视口元素
 			onError: (error) => {
-				AlphaTabEventHandlers.handleAlphaTabError(
+				ITabEventHandlers.handleAlphaTabError(
 					error,
 					this.uiManager
 				);
@@ -125,7 +125,7 @@ export class TabView extends FileView {
 					this.tracksSidebar.setRenderTracks(initialRenderTracks);
 					
 					// 如果需要，可以在这里额外调用 handler
-					AlphaTabEventHandlers.handleAlphaTabScoreLoaded(
+					ITabEventHandlers.handleAlphaTabScoreLoaded(
 						score,
 						this.uiManager,
 						null, // 不再使用TracksModal
@@ -142,29 +142,29 @@ export class TabView extends FileView {
 				this.updateDisplayTitle(); // 使用我们之前定义的方法
 			},
 			onRenderStarted: () => {
-				AlphaTabEventHandlers.handleAlphaTabRenderStarted(
+				ITabEventHandlers.handleAlphaTabRenderStarted(
 					this.uiManager
 				);
 			},
 			onRenderFinished: () => {
-				AlphaTabEventHandlers.handleAlphaTabRenderFinished(
+				ITabEventHandlers.handleAlphaTabRenderFinished(
 					this.uiManager,
 					this.leaf
 				);
 			},
 			onPlayerStateChanged: (args: PlayerStateChangedEventArgs) => {
-				AlphaTabEventHandlers.handlePlayerStateChanged(
+				ITabEventHandlers.handlePlayerStateChanged(
 					args,
 					this.uiManager
 				);
 			},
 		};
-		this.atManager = new AlphaTabManager(managerOptions);
+		this.atManager = new ITabManager(managerOptions);
 		this.atManager.setDarkMode(
 			document.body.className.includes("theme-dark")
 		);
 
-		// 3. 使用 AlphaTabManager 加载乐谱
+		// 3. 使用 ITabManager 加载乐谱
 		// 确保 pluginInstance.actualPluginDir 已被 main.ts 正确设置!
 		if (!this.pluginInstance.actualPluginDir) {
 			this.uiManager.showErrorInOverlay(

@@ -55,11 +55,11 @@
 
 **目标**：将当前已能播放的插件，打造成一个拥有核心控制界面的、体验完整的播放器。
 
-1.  **实现 `AlphaTabUIManager` 的增强**：
+1.  **实现 `ITabUIManager` 的增强**：
     * 参考 `SimpleDisplay.vue`，在 `at-overlay` 中添加明确的加载提示，如“正在加载乐谱...”、“正在加载音频引擎...”。
     * 在 `onRenderStarted` 和 SoundFont 开始加载时显示它，在 `onRenderFinished` 和 `playerReady` 后隐藏它。
 2.  **构建 `ControlBar`**：
-    * 在 `AlphaTabUIManager.ts` 中，创建一个新的 `renderControlBar` 方法（或扩展现有的），用于动态添加一系列控制按钮。
+    * 在 `ITabUIManager.ts` 中，创建一个新的 `renderControlBar` 方法（或扩展现有的），用于动态添加一系列控制按钮。
     * **优先实现以下组件** (参考 `ControlBar.vue` 的 `priority-high` 和基础功能)：
         * **播放/暂停按钮** (已完成，仅需美化)。
         * **停止按钮** (已完成，仅需美化)。

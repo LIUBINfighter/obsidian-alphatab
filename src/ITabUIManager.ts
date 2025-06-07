@@ -1,4 +1,4 @@
-// AlphaTabUIManager.ts
+// ITabUIManager.ts
 import { PlayPauseButton } from "./components/playPauseButton";
 import { TimePositionDisplay } from "./components/TimePositionDisplay";
 import { StopButton } from "./components/StopButton";
@@ -7,11 +7,11 @@ import { ToggleButton } from "./components/ToggleButton";
 
 // 负责 AlphaTab 相关 UI 元素的创建与管理
 
-export interface AlphaTabUIManagerOptions {
+export interface ITabUIManagerOptions {
 	container: HTMLElement;
 }
 
-export class AlphaTabUIManager {
+export class ITabUIManager {
 	public atWrap!: HTMLElement;
 	public atOverlayRef!: HTMLElement;
 	public atOverlayContentRef!: HTMLElement;
@@ -30,7 +30,7 @@ export class AlphaTabUIManager {
 	public savePdfButton!: ToggleButton;
 	public savePngButton!: ToggleButton;
 
-	constructor(options: AlphaTabUIManagerOptions) {
+	constructor(options: ITabUIManagerOptions) {
 		this.createUI(options.container);
 	}
 

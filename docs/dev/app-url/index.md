@@ -36,7 +36,7 @@
 6.  **禁用 Worker 和 Player**：
     * 在当前的调试阶段 (`FONT_DEBUG_MODE` 或 `DATA_URL_FONT_DEBUG_MODE`)，`settings.core.useWorkers` 和 `settings.player.enablePlayer` 均设置为 `false`，以简化环境，专注于核心渲染和字体问题。
 7.  **`mainElement` 尺寸问题（用户待办）**：
-    * 日志中持续出现 `mainElement has zero width or height` 警告。已多次强调需要用户在其视图代码 (如 `TabView.ts`) 中确保传递给 `AlphaTabManager` 的 `mainElement` 在 AlphaTab 初始化前具有明确的、大于零的 CSS 宽度和高度，并已附加到 DOM。
+    * 日志中持续出现 `mainElement has zero width or height` 警告。已多次强调需要用户在其视图代码 (如 `TabView.ts`) 中确保传递给 `ITabManager` 的 `mainElement` 在 AlphaTab 初始化前具有明确的、大于零的 CSS 宽度和高度，并已附加到 DOM。
 
 尽管音符头已正确渲染，但之前的日志显示 `this.api.fontLoaded` 和 `this.api.ready` 事件发射器仍然是 `undefined`。这是后续需要关注的问题，以确保 API 对象的完整性和事件系统的正常运作。
 
@@ -64,7 +64,7 @@
 
 ## 4. Relevant Files and Code (相关文件和代码)
 
-* **`AlphaTabManager.ts`**: 封装 AlphaTab 初始化、配置、资源管理和 API 交互的核心类。是所有调试和修改的中心。
+* **`ITabManager.ts`**: 封装 AlphaTab 初始化、配置、资源管理和 API 交互的核心类。是所有调试和修改的中心。
     * **`initializeAndLoadScore(file: TFile)`**: 核心方法，负责设置 AlphaTab、加载资源和乐谱。
         * **Data URL Generation**:
             ```typescript
@@ -118,7 +118,7 @@
             css += `@font-face {\n  font-family: '${fontFamily}';\n  src: ${sources.join(",\n       ")};\n  font-display: block;\n}\n\n`;
         });
         const styleEl = document.createElement("style");
-        styleEl.id = AlphaTabManager.FONT_STYLE_ELEMENT_ID;
+        styleEl.id = ITabManager.FONT_STYLE_ELEMENT_ID;
         styleEl.textContent = css;
         document.head.appendChild(styleEl);
         this.triggerFontPreload(fontFamiliesToDefine);
@@ -132,7 +132,7 @@
     * `assets/alphatab/alphaTab.worker.mjs` (ESM Worker 文件，暂未使用)
     * `assets/alphatab/soundfont/sonivox.sf2` (SoundFont 文件，暂未使用)
 * **`TabView.ts` (或等效的视图文件，用户负责)**:
-    * 需要确保传递给 `AlphaTabManager` 的 `mainElement` 具有非零的 CSS 尺寸。
+    * 需要确保传递给 `ITabManager` 的 `mainElement` 具有非零的 CSS 尺寸。
 
 ## 5. Problem Solving (已解决的问题和进行中的故障排除)
 
@@ -147,14 +147,14 @@
 ## 6. Pending Tasks and Next Steps (待处理任务和后续步骤)
 
 1.  **用户操作：解决 `mainElement` 尺寸问题**：
-    * **任务**: 用户需要在其 `TabView.ts`（或创建 `AlphaTabManager` 的视图文件中）确保传递给 `AlphaTabManager` 的 `mainElement` 参数在 `AlphaTabManager` 初始化之前已经具有明确的、大于零的 CSS 宽度和高度，并且已经附加到 DOM 中。
+    * **任务**: 用户需要在其 `TabView.ts`（或创建 `ITabManager` 的视图文件中）确保传递给 `ITabManager` 的 `mainElement` 参数在 `ITabManager` 初始化之前已经具有明确的、大于零的 CSS 宽度和高度，并且已经附加到 DOM 中。
     * **后续**: 在此问题解决前，无法准确评估 AlphaTab 的渲染行为和性能。
 
 2.  **调查 `fontLoaded` 和 `ready` 事件发射器缺失问题**：
     * **任务**: 即使音符头渲染成功，这两个事件发射器缺失表明 API 未完全初始化。我们需要理解为什么在当前配置下（Data URL + 手动 `@font-face` + 虚拟 `fontDirectory`）这些事件发射器没有被创建。
     * **后续步骤**:
         * 仔细检查 AlphaTab `1.5.0` 版本的官方文档和 GitHub Issues，看是否有关于这两个事件在特定条件下（如 Data URL 字体、Electron 环境）行为的说明或已知问题。
-        * 在 `AlphaTabManager.ts` 的 `initializeAndLoadScore` 中，`new AlphaTabApi(...)` 之后，除了检查事件发射器是否存在，还可以尝试直接访问一些可能依赖于字体加载状态的内部属性或方法（如果 AlphaTab 源码允许或有线索），以判断字体模块的内部状态。
+        * 在 `ITabManager.ts` 的 `initializeAndLoadScore` 中，`new AlphaTabApi(...)` 之后，除了检查事件发射器是否存在，还可以尝试直接访问一些可能依赖于字体加载状态的内部属性或方法（如果 AlphaTab 源码允许或有线索），以判断字体模块的内部状态。
         * 考虑 `settings.core.scriptFile` 的影响。虽然当前设置为 `alphatab.js` 的 `app://` URL，并且 Worker 禁用，但 AlphaTab 内部初始化 `BrowserUiFacade` 或 `FontLoadingChecker` 时，是否仍然会尝试基于此路径做一些我们未预料到的操作，从而间接影响事件发射器的创建？可以尝试将其暂时设置为 `null`，看看 `fontLoaded` 和 `ready` 是否有变化（虽然这可能导致 `fontDirectory` 的虚拟路径失效）。
 
 3.  **重新评估并启用 Web Worker 和 Player (在 API 完整性问题解决后)**：

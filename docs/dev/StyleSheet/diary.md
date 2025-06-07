@@ -26,7 +26,7 @@ We explored manipulating settings.core.fontDirectory (setting it to a non-null p
 
 The latest attempt involved setting globalThis.ALPHATAB_FONT to a placeholder HTTP URL ("http://localhost:12345/fake-font-dir/") and settings.core.fontDirectory to "./placeholder-fonts/".
 
-The user's last provided logs (after applying the latest changes to AlphaTabManager.ts from the Canvas alphatab_manager_font_fix_20240604_v2) show that settings.core.fontDirectory was correctly passed as "./fonts/" to the API, and globalThis.ALPHATAB_FONT was temporarily set. However, the Font directory could not be detected error still occurred, and the <style id="alphaTabStyle"> was not created.
+The user's last provided logs (after applying the latest changes to ITabManager.ts from the Canvas alphatab_manager_font_fix_20240604_v2) show that settings.core.fontDirectory was correctly passed as "./fonts/" to the API, and globalThis.ALPHATAB_FONT was temporarily set. However, the Font directory could not be detected error still occurred, and the <style id="alphaTabStyle"> was not created.
 
 A key positive observation is that document.fonts.check("1em alphaTab") consistently returns true, indicating the font data itself (from data:URL) is likely available to the browser.
 
@@ -76,11 +76,11 @@ Still contains ResourceServer initialization, though its necessity for font load
 
 TabView.ts:
 
-Orchestrates UI (AlphaTabUIManager) and core logic (AlphaTabManager).
+Orchestrates UI (ITabUIManager) and core logic (ITabManager).
 
-Passes actualPluginDir (via this.pluginInstance) to AlphaTabManager.
+Passes actualPluginDir (via this.pluginInstance) to ITabManager.
 
-AlphaTabManager.ts (Canvas: alphatab_manager_font_fix_20240604_v2):
+ITabManager.ts (Canvas: alphatab_manager_font_fix_20240604_v2):
 
 Focus of recent debugging.
 
@@ -101,7 +101,7 @@ Temporarily sets globalThis.ALPHATAB_FONT = "http://localhost:12345/fake-font-di
 Important snippet (font loading setup):
 
 ```typescript
-// In AlphaTabManager.ts, initializeAndLoadScore method
+// In ITabManager.ts, initializeAndLoadScore method
 // ... (data:URL creation for smuflFontSources) ...
 if (primaryFontLoaded && metadataLoaded) {
     this.settings.core.smuflFontSources = fontDataUrls;
@@ -122,7 +122,7 @@ Provides a local HTTP server. Its role in the current data:URL strategy is dimin
 
 Includes detailed path checking and CORS headers.
 
-AlphaTabUIManager.ts, AlphaTabEventHandlers.ts, TracksModal.ts, utils.ts: Supporting modules, largely stable.
+ITabUIManager.ts, ITabEventHandlers.ts, TracksModal.ts, utils.ts: Supporting modules, largely stable.
 
 ## Problem Solving
 

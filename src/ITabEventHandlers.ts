@@ -1,11 +1,11 @@
-// AlphaTabEventHandlers.ts
+// ITabEventHandlers.ts
 // 可选：复杂事件处理逻辑可集中于此
-import type { AlphaTabUIManager } from "./AlphaTabUIManager";
+import type { ITabUIManager } from "./ITabUIManager";
 import { Notice } from "obsidian";
 
 export function handleAlphaTabError(
 	error: { message?: string },
-	ui: AlphaTabUIManager
+	ui: ITabUIManager
 ) {
 	console.error("[AlphaTab Internal Error]", error);
 	const errorMessage = `AlphaTab Error: ${
@@ -15,11 +15,11 @@ export function handleAlphaTabError(
 	new Notice(errorMessage, 10000);
 }
 
-export function handleAlphaTabRenderStarted(ui: AlphaTabUIManager) {
+export function handleAlphaTabRenderStarted(ui: ITabUIManager) {
 	ui.showLoadingOverlay("Rendering sheet...");
 }
 
-export function handleAlphaTabRenderFinished(ui: AlphaTabUIManager, leaf: any) {
+export function handleAlphaTabRenderFinished(ui: ITabUIManager, leaf: any) {
 	ui.hideLoadingOverlay();
 	// new Notice("Tab rendered!");
 	leaf?.updateHeader?.();
@@ -51,7 +51,7 @@ export function handleAlphaTabScoreLoaded(
 
 export function handlePlayerStateChanged(
 	args: { state: number }, // 简化类型定义
-	ui: AlphaTabUIManager
+	ui: ITabUIManager
 ) {
 	const isPlaying = args.state === 1; // synth.PlayerState.Playing
 	const isPaused = args.state === 2; // synth.PlayerState.Paused

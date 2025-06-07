@@ -8,26 +8,26 @@
 **关键改进**：
 
 - **actualPluginDir 的正确定位**：这是最关键的突破！通过 `(this.app.vault.adapter as any).basePath` 和 `this.manifest.dir` 结合，现在能够准确地定位到插件的根目录。这为后续所有基于 fs 的文件读取操作（尤其是字体文件）奠定了坚实的基础。
-- **传递 actualPluginDir**：通过将插件实例 `this` 传递给 `TabView` 的构造函数，`TabView` 及其后续创建的 `AlphaTabManager` 能够安全地访问到这个正确的插件路径。
+- **传递 actualPluginDir**：通过将插件实例 `this` 传递给 `TabView` 的构造函数，`TabView` 及其后续创建的 `ITabManager` 能够安全地访问到这个正确的插件路径。
 - **内联 CSS 加载**：`registerStyles` 方法现在通过 `fs.readFileSync` 读取 `styles.css` 内容并直接注入到 `<style>` 标签中。这是一种非常有效的绕过 `app://local/` 协议加载外部 CSS 文件时可能遇到的 CSP (Content Security Policy) 限制的方法。
-- **ResourceServer 的保留**：代码中依然保留了 ResourceServer 的初始化和管理。虽然字体加载的主力已经转向了 `AlphaTabManager` 中的 `data:URL` 方案，但 ResourceServer 可能仍然用于其他目的（比如未来可能用到的 Worker 脚本 `alphaTab.mjs`，或者其他插件资源）。如果确认所有核心资源（尤其是字体）都通过 `data:URL` 或内联方式加载，可以考虑是否完全移除 ResourceServer 以简化结构。
+- **ResourceServer 的保留**：代码中依然保留了 ResourceServer 的初始化和管理。虽然字体加载的主力已经转向了 `ITabManager` 中的 `data:URL` 方案，但 ResourceServer 可能仍然用于其他目的（比如未来可能用到的 Worker 脚本 `alphaTab.mjs`，或者其他插件资源）。如果确认所有核心资源（尤其是字体）都通过 `data:URL` 或内联方式加载，可以考虑是否完全移除 ResourceServer 以简化结构。
 
 ---
 
 ## 2. `TabView.ts` (Obsidian 视图层)
 
-**核心职责**：作为 Obsidian 的 FileView，负责单个吉他谱文件的展示界面。它是连接 Obsidian UI、AlphaTabUIManager 和 AlphaTabManager 的桥梁。
+**核心职责**：作为 Obsidian 的 FileView，负责单个吉他谱文件的展示界面。它是连接 Obsidian UI、ITabUIManager 和 ITabManager 的桥梁。
 
 **运作方式**：
 
-- 在 `onLoadFile` 时，初始化 `AlphaTabUIManager` 来构建视图的 DOM 结构。接着初始化 `AlphaTabManager`，并将 UI 管理器中的关键 DOM 元素（如渲染目标 `atMainRef`）以及事件回调传递给它。
+- 在 `onLoadFile` 时，初始化 `ITabUIManager` 来构建视图的 DOM 结构。接着初始化 `ITabManager`，并将 UI 管理器中的关键 DOM 元素（如渲染目标 `atMainRef`）以及事件回调传递给它。
 - 调用 `atManager.initializeAndLoadScore(file)` 来启动 AlphaTab 引擎并加载乐谱数据。
 - 处理用户交互，如通过顶部的 Action Bar 调用 `TracksModal` 或触发 MIDI 下载。
 - 响应视图的生命周期事件，如 `onResize` (通知 atManager 重新渲染) 和 `onUnloadFile`/`onunload` (销毁 atManager 以释放资源)。
 
 ---
 
-## 3. `AlphaTabManager.ts` (AlphaTab 核心逻辑封装)
+## 3. `ITabManager.ts` (AlphaTab 核心逻辑封装)
 
 **核心职责**：封装所有与 AlphaTab API 实例直接相关的操作，包括创建、配置、加载乐谱、控制播放（如果启用）、处理 AlphaTab 内部事件，以及最重要的——字体加载。
 
@@ -43,7 +43,7 @@
 
 ---
 
-## 4. `AlphaTabUIManager.ts` (UI 元素管理)
+## 4. `ITabUIManager.ts` (UI 元素管理)
 
 **核心职责**：纯粹的 UI 操作层，负责创建 AlphaTab 所需的 DOM 结构 (`wrapper`, `overlay`, `main`, `viewport`, `controls`) 和控制播放/停止按钮的状态。
 
@@ -51,9 +51,9 @@
 
 ---
 
-## 5. `AlphaTabEventHandlers.ts` (事件处理逻辑)
+## 5. `ITabEventHandlers.ts` (事件处理逻辑)
 
-**核心职责**：将具体的事件处理逻辑（如显示错误、更新加载状态、处理乐谱加载完成后的操作）从 TabView 或 AlphaTabManager 中剥离出来，形成独立的函数。
+**核心职责**：将具体的事件处理逻辑（如显示错误、更新加载状态、处理乐谱加载完成后的操作）从 TabView 或 ITabManager 中剥离出来，形成独立的函数。
 
 **优点**：使得事件处理流程更清晰，并且这些处理器可以被不同地方复用（如果需要的话）。
 
@@ -70,10 +70,10 @@
 
 **思考点**：
 
-- 是否仍有必要？ 如果 AlphaTabManager 中的 data:URL 字体加载方案稳定可靠，并且没有其他资源（如 `alphaTab.mjs` worker 脚本，目前是禁用的）必须通过 HTTP 加载，那么 ResourceServer 的复杂性可能可以被移除。
-- AlphaTabManager 中的 `this.settings.core.fontDirectory = null;` 和 `this.settings.core.scriptFile = null;` 已经明确指示 AlphaTab 不要通过网络加载这些核心资源。
+- 是否仍有必要？ 如果 ITabManager 中的 data:URL 字体加载方案稳定可靠，并且没有其他资源（如 `alphaTab.mjs` worker 脚本，目前是禁用的）必须通过 HTTP 加载，那么 ResourceServer 的复杂性可能可以被移除。
+- ITabManager 中的 `this.settings.core.fontDirectory = null;` 和 `this.settings.core.scriptFile = null;` 已经明确指示 AlphaTab 不要通过网络加载这些核心资源。
 - 如果 ResourceServer 只是为了一个理论上可能被 AlphaTab 内部（绕过 settings）尝试的 HTTP 请求而保留，且这些请求实际上因为 data:URL 的成功而从未发生，那么它的维护成本可能大于收益。
-- ResourceServer 中的 `configureAlphaTabSettings` 和 `setupRoutes` 方法似乎没有被 AlphaTabManager 或 main.ts 调用，这可能是一些遗留代码。
+- ResourceServer 中的 `configureAlphaTabSettings` 和 `setupRoutes` 方法似乎没有被 ITabManager 或 main.ts 调用，这可能是一些遗留代码。
 
 ---
 
@@ -88,7 +88,7 @@
 
 - 你们的重构非常成功，解决了最棘手的字体加载问题，并且代码结构更加模块化和健壮。
     - `actualPluginDir` 的稳定获取是基石。
-    - `AlphaTabManager` 中彻底的 data:URL 字体加载策略 (包括元数据) 是关键。
+    - `ITabManager` 中彻底的 data:URL 字体加载策略 (包括元数据) 是关键。
     - CSS 内联加载解决了 CSP 问题。
     - 明确的职责分离使得代码更易于理解和维护。
 - 可以考虑的下一步（如果一切稳定）：

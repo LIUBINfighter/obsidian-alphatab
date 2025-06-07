@@ -45,13 +45,13 @@ render.md
 
 4.  **Relevant Files and Code:**
 
-    -   **`./src/AlphaTabManager.ts`**:
+    -   **`./src/ITabManager.ts`**:
 
         -   **重要性**: 管理 `AlphaTabApi` 实例、核心设置（尤其是字体设置）、乐谱加载和事件绑定。这是解决字体问题的核心文件。
         -   **关键代码段 (基于你的最新版本)**:
 
             ```typescript
-            // AlphaTabManager.ts - initializeAndLoadScore method
+            // ITabManager.ts - initializeAndLoadScore method
 
             // 强制禁用任何网络资源加载 - 非常重要的字体设置
             this.settings.core.fontDirectory = null; // 或者尝试过 'fonts/'
@@ -107,7 +107,7 @@ render.md
 
     -   **`./src/main.ts`**:
 
-        -   **重要性**: 插件入口，负责获取插件的实际磁盘路径 `actualPluginDir`，并将其传递给 `TabView` 和 `AlphaTabManager`，这对于 `fs` 读取本地字体至关重要。
+        -   **重要性**: 插件入口，负责获取插件的实际磁盘路径 `actualPluginDir`，并将其传递给 `TabView` 和 `ITabManager`，这对于 `fs` 读取本地字体至关重要。
         -   **关键代码段**:
             ```typescript
             // main.ts - onload method
@@ -125,7 +125,7 @@ render.md
 
     -   **`./src/TabView.ts`**:
 
-        -   **重要性**: Obsidian 的视图，承载 `AlphaTabManager` 和 `AlphaTabUIManager`，并将插件实例 (`pluginInstance`) 传递给 `AlphaTabManager`。
+        -   **重要性**: Obsidian 的视图，承载 `ITabManager` 和 `ITabUIManager`，并将插件实例 (`pluginInstance`) 传递给 `ITabManager`。
         -   **关键代码段**:
 
             ```typescript
@@ -137,11 +137,11 @@ render.md
 
             override async onLoadFile(file: TFile): Promise<void> {
                 // ...
-                const managerOptions: AlphaTabManagerOptions = {
+                const managerOptions: ITabManagerOptions = {
                     pluginInstance: this.pluginInstance, // passed to manager
                     // ...
                 };
-                this.atManager = new AlphaTabManager(managerOptions);
+                this.atManager = new ITabManager(managerOptions);
                 // ...
                 await this.atManager.initializeAndLoadScore(file);
             }
@@ -193,10 +193,10 @@ render.md
 
             -   **方案 A: 尝试阻止 alphaTab 自动创建样式，并手动管理**
 
-                1.  在 `AlphaTabManager.ts` 中，在实例化 `AlphaTabApi` _之前_，尝试覆盖 `alphaTab.Environment.createStyleElement`。
+                1.  在 `ITabManager.ts` 中，在实例化 `AlphaTabApi` _之前_，尝试覆盖 `alphaTab.Environment.createStyleElement`。
 
                     ```typescript
-                    // Potentially in AlphaTabManager before new AlphaTabApi()
+                    // Potentially in ITabManager before new AlphaTabApi()
                     const originalCreateStyleElement =
                     	alphaTab.Environment.createStyleElement;
                     alphaTab.Environment.createStyleElement = (
@@ -205,13 +205,13 @@ render.md
                     	targetDocument?: Document
                     ): HTMLStyleElement | null => {
                     	console.log(
-                    		"[AlphaTabManager] Custom createStyleElement called. Preventing default style creation."
+                    		"[ITabManager] Custom createStyleElement called. Preventing default style creation."
                     	);
                     	// Option 1: Return null or an empty, non-functional element
                     	// return null;
 
                     	// Option 2 (if you want to log but still prevent):
-                    	// console.log('[AlphaTabManager] CSS content alphaTab tried to inject:', cssContent);
+                    	// console.log('[ITabManager] CSS content alphaTab tried to inject:', cssContent);
                     	// return null; // Or an empty style element that won't affect anything.
 
                     	// Or, if you want to try to use the provided cssContent but ensure it's correctly handled by Obsidian:
@@ -232,7 +232,7 @@ render.md
                     	font-style: normal;
                     }
                     ```
-                    你需要在 `AlphaTabManager` 中获取这些 Data URLs，或者以某种方式使它们在 CSS 中可用。由于 CSS 文件是静态的，直接将动态生成的 Data URLs 放入 `styles.css` 不太现实，除非在构建时处理。更可行的是在插件加载时动态创建并注入一个包含这些 `@font-face` 规则的 `<style>` 标签到 `document.head`。
+                    你需要在 `ITabManager` 中获取这些 Data URLs，或者以某种方式使它们在 CSS 中可用。由于 CSS 文件是静态的，直接将动态生成的 Data URLs 放入 `styles.css` 不太现实，除非在构建时处理。更可行的是在插件加载时动态创建并注入一个包含这些 `@font-face` 规则的 `<style>` 标签到 `document.head`。
 
             -   **方案 B: 深入研究 `fontDirectory` 和 `smuflFontSources` 的协同工作**
                 如果方案 A 过于复杂或有副作用，继续研究是否可以通过特定组合的 `fontDirectory` (例如一个无害的、已知的、空的占位符路径，或者确认 `null` 应该是正确的) 和 `smuflFontSources` 来让 `alphatab.js` 正确地自行处理基于 Data URL 的 `@font-face` 注入，而不会引发错误或尝试进行无效的网络请求。这可能需要更仔细地分析 `alphatab.js` 内部的 `BrowserUiFacade.createStyleElements` 和 `FontLoadingChecker.checkForFontAvailability`（如果你使用了调试补丁）。
