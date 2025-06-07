@@ -1,0 +1,3 @@
+export function exportMidi(atManager: any, uiManager: any) {
+	// ...复制 downloadMidi 逻辑，参数传入 atManager, uiManager...
+}

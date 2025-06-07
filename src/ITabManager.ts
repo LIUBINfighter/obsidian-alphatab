@@ -12,22 +12,10 @@ import { Notice, TFile, App } from "obsidian";
 
 import * as fs from "fs";
 import * as path from "path";
-
-export interface ITabManagerOptions {
-	pluginInstance: any;
-	app: App;
-	mainElement: HTMLElement;
-	viewportElement: HTMLElement;
-	onError?: (args: any) => void;
-	onRenderStarted?: (isReload: boolean, canRender: boolean) => void;
-	onRenderFinished?: () => void;
-	onScoreLoaded?: (score: alphaTab.model.Score | null) => void;
-	onPlayerStateChanged?: (args: any) => void;
-	onFontLoaded?: (name: string, family: string) => void;
-	onSoundFontLoaded?: () => void;
-	onPlayerReady?: () => void;
-	onReady?: () => void;
-}
+import { ITabManagerOptions } from "./types";
+import { FontManager } from "./FontManager";
+import { AlphaTabSettingsHelper } from "./AlphaTabSettingsHelper";
+import { AlphaTabEventBinder } from "./AlphaTabEventBinder";
 
 export class ITabManager {
 	// 添加缺失的类属性声明
@@ -85,125 +73,20 @@ export class ITabManager {
 	}
 
 	private getAbsolutePath(relativePath: string): string {
-		const vaultBasePath = (this.app.vault.adapter as any).getBasePath
-			? (this.app.vault.adapter as any).getBasePath()
-			: "";
-		return path.join(
-			vaultBasePath,
-			this.pluginInstance.manifest.dir,
-			relativePath
-		);
+		return AlphaTabSettingsHelper.getAbsolutePath(this.app, this.pluginInstance.manifest.dir, relativePath);
 	}
 
 	private injectFontFaces(fontData: Record<string, string>): boolean {
-		this.removeInjectedFontFaces(); // Clean up previous attempts
-
-		const woff2Src = fontData["woff2"];
-		const woffSrc = fontData["woff"];
-
-		if (!woff2Src && !woffSrc) {
-			console.error(
-				"[ITabManager] No WOFF or WOFF2 data URLs available to inject font faces."
-			);
-			return false;
-		}
-
-		let css = "";
-		const sources: string[] = [];
-		if (woff2Src) sources.push(`url('${woff2Src}') format('woff2')`);
-		if (woffSrc) sources.push(`url('${woffSrc}') format('woff')`);
-		// You could add OTF here too if you provide it in fontData
-		// if (fontData["otf"]) sources.push(`url('${fontData["otf"]}') format('opentype')`);
-
-		const fontFamiliesToDefine = ["Bravura", "alphaTab"]; // Define for both
-
-		fontFamiliesToDefine.forEach((fontFamily) => {
-			css += `@font-face {\n`;
-			css += `  font-family: '${fontFamily}';\n`;
-			css += `  src: ${sources.join(",\n       ")};\n`; // Format for readability
-			css += `  font-display: block;\n`; // Or 'swap'
-			css += `}\n\n`;
-		});
-
-		try {
-			const styleEl = document.createElement("style");
-			styleEl.id = ITabManager.FONT_STYLE_ELEMENT_ID;
-			styleEl.type = "text/css";
-			styleEl.textContent = css;
-			document.head.appendChild(styleEl);
-			console.log(
-				`[ITabManager] Manually injected @font-face rules for: ${fontFamiliesToDefine.join(
-					", "
-				)} using WOFF/WOFF2 Data URLs.`
-			);
-			// Trigger browser to acknowledge font
-			this.triggerFontPreload(fontFamiliesToDefine);
-			return true;
-		} catch (e) {
-			console.error(
-				"[ITabManager] Error injecting manual font styles:",
-				e
-			);
-			return false;
-		}
+		return FontManager.injectFontFaces(fontData, ["Bravura", "alphaTab"]);
 	}
 
 	private removeInjectedFontFaces() {
-		const existingStyleEl = document.getElementById(
-			ITabManager.FONT_STYLE_ELEMENT_ID
-		);
-		if (existingStyleEl) {
-			existingStyleEl.remove();
-			console.log(
-				"[ITabManager] Removed previously injected manual font styles."
-			);
-		}
+		FontManager.removeInjectedFontFaces();
 	}
 
 	private triggerFontPreload(fontFamilies: string[]) {
-		fontFamilies.forEach((fontFamily) => {
-			if (typeof FontFace !== "undefined" && document.fonts) {
-				const fontUrl = this.settings.core.fontDirectory + 'Bravura.woff2';
-				if (fontUrl) {
-					const font = new FontFace(fontFamily, `url(${fontUrl})`, {
-						display: 'block'
-					});
-					font.load()
-						.then((loadedFont) => {
-							// @ts-ignore
-							document.fonts.add(loadedFont);
-							console.log(
-								`[ITabManager] FontFace API: Successfully loaded and added '${fontFamily}'.`
-							);
-						})
-						.catch((err) => {
-							console.warn(
-								`[ITabManager] FontFace API: Error loading '${fontFamily}':`,
-								err
-							);
-						});
-				} else {
-					console.warn(
-						`[ITabManager] FontFace API: No WOFF/WOFF2 URL found in smuflFontSources to preload '${fontFamily}'.`
-					);
-				}
-			} else {
-				// Fallback if FontFace API is not fully supported or as an additional trigger
-				const testEl = document.createElement("div");
-				testEl.style.fontFamily = fontFamily;
-				testEl.style.position = "absolute";
-				testEl.style.left = "-9999px";
-				testEl.style.visibility = "hidden";
-				testEl.textContent = "test"; // Some content
-				document.body.appendChild(testEl);
-				setTimeout(() => {
-					if (testEl.parentElement) testEl.remove();
-				}, 100); // Clean up
-				console.log(
-					`[ITabManager] Triggered font preload for '${fontFamily}' via temporary element.`
-				);
-			}
-		});
+		const fontUrl = this.settings.core.fontDirectory + 'Bravura.woff2';
+		FontManager.triggerFontPreload(fontFamilies, fontUrl);
 	}
 
 	async initializeAndLoadScore(file: TFile) {
@@ -494,57 +377,12 @@ export class ITabManager {
 	}
 
 	private bindEvents() {
-		if (!this.api) {
-			console.error("[AlphaTab] bindEvents: API is null.");
-			return;
-		}
-		
-		const safeBind = (eventName: string, handler?: (...args: any[]) => void) => {
-			// @ts-ignore
-			const emitter = this.api![eventName];
-			if (emitter && typeof emitter.on === "function") {
-				if (handler) emitter.on(handler);
-			} else {
-				console.error(`[AlphaTab] Failed to bind event '${eventName}'`);
-			}
-		};
-
-		// 绑定所有事件
-		safeBind("error", this.eventHandlers.onError);
-		safeBind("renderStarted", this.eventHandlers.onRenderStarted);
-		safeBind("renderFinished", this.eventHandlers.onRenderFinished);
-		// ... bind other events ...
-		// @ts-ignore
-		const scoreLoadedEmitter = this.api!.scoreLoaded;
-		if (scoreLoadedEmitter && typeof scoreLoadedEmitter.on === "function") {
-			scoreLoadedEmitter.on((score: alphaTab.model.Score | null) => {
-				this.score = score;
-				if (score?.tracks?.length) {
-					this.renderTracks = [score.tracks[0]];
-				} else {
-					this.renderTracks = [];
-				}
-				console.log(
-					"[ITabManager] Internal scoreLoaded. Score:",
-					score?.title,
-					"Tracks:",
-					score?.tracks?.length
-				);
-				this.eventHandlers.onScoreLoaded?.(score);
-			});
-			console.log(`[ITabManager] Bound handler for 'scoreLoaded'.`);
-		} else {
-			console.error(
-				`[ITabManager] FAILED to bind event 'scoreLoaded'. Emitter missing/invalid:`,
-				scoreLoadedEmitter
-			);
-		}
-
-		safeBind("playerStateChanged", this.eventHandlers.onPlayerStateChanged);
-		safeBind("fontLoaded", this.eventHandlers.onFontLoaded);
-		safeBind("soundFontLoaded", this.eventHandlers.onSoundFontLoaded);
-		safeBind("playerReady", this.eventHandlers.onPlayerReady);
-		safeBind("ready", this.eventHandlers.onReady);
+		AlphaTabEventBinder.bind(
+			this.api,
+			this.eventHandlers,
+			(score) => { this.score = score; },
+			(tracks) => { this.renderTracks = tracks; }
+		);
 	}
 
 	// ... other methods ...
@@ -579,3 +417,5 @@ export class ITabManager {
 		console.log("[ITabManager] Destroyed.");
 	}
 }
+export { ITabManagerOptions };
+
