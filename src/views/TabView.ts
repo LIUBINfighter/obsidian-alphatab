@@ -5,6 +5,7 @@ import { ITabUIManager } from "../ITabUIManager";
 import { ITabManager, ITabManagerOptions } from "../ITabManager";
 import * as ITabEventHandlers from "../ITabEventHandlers";
 import { TracksSidebar } from "../components/TracksSidebar";
+import { TabDisplay } from "../components/TabDisplay"; // 新增
 import { PlayerStateChangedEventArgs } from "../types"; // 从 types.ts 引入类型
 
 export const VIEW_TYPE_TAB = "tab-view";
@@ -14,7 +15,8 @@ export class TabView extends FileView {
 	private uiManager!: ITabUIManager;
 	private atManager!: ITabManager;
 	private tracksSidebar!: TracksSidebar;
-	private mainContentEl!: HTMLElement;
+	// private mainContentEl!: HTMLElement; // 移除
+	private tabDisplay!: TabDisplay; // 新增
 	private pluginInstance: any; // 主插件实例
 
 	constructor(leaf: WorkspaceLeaf, plugin: any) {
@@ -72,12 +74,17 @@ export class TabView extends FileView {
 			layoutContainer, 
 			this.onChangeTracksFromSidebar.bind(this)
 		);
-		
-		// 创建主内容区域
-		this.mainContentEl = layoutContainer.createDiv({ cls: "at-main-content" });
 
-		// 1. 初始化 UI 管理器
-		this.uiManager = new ITabUIManager({ container: this.mainContentEl });
+		// 优化：TabDisplay 只创建一次，后续复用
+		if (!this.tabDisplay) {
+			this.tabDisplay = new TabDisplay(layoutContainer);
+		} else {
+			// 复用时清空内容
+			this.tabDisplay.getContentElement().empty();
+		}
+
+		// 1. 初始化 UI 管理器，主内容区域交给 TabDisplay
+		this.uiManager = new ITabUIManager({ container: this.tabDisplay.getContentElement() });
 		this.uiManager.renderControlBar(
 			() => this.atManager?.playPause(), // Play/Pause 点击回调
 			() => this.atManager?.stop() // Stop 点击回调
@@ -264,9 +271,15 @@ export class TabView extends FileView {
 		}
 		this.currentFile = null;
 		this.contentEl.empty(); // 清理 DOM
+		// 优化：彻底清理 TabDisplay
+		if (this.tabDisplay) {
+			this.tabDisplay.getContentElement().empty();
+			// @ts-ignore
+			this.tabDisplay = null;
+		}
 		await super.onUnloadFile(file);
 	}
-
+	
 	async onunload() {
 		// 当视图本身被关闭和销毁时
 		console.log("[TabView] Final onunload triggered.");
@@ -274,6 +287,11 @@ export class TabView extends FileView {
 			this.atManager.destroy();
 			// @ts-ignore
 			this.atManager = null;
+		}
+		if (this.tabDisplay) {
+			this.tabDisplay.getContentElement().empty();
+			// @ts-ignore
+			this.tabDisplay = null;
 		}
 		super.onunload();
 	}
