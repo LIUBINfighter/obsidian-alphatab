@@ -10,25 +10,31 @@ Play and Create guitar tabs using AlphaTab. Modern music font and sound! (Suppor
 
 ## Roadmap
 
+### Beta Testing
+
+- Render tabs
+- PlayPause
+- Stop
+
 ### WIP
 
-#### Control Components
-
-PlayPause
-
-Stop
-
-Layout
-
-Zoom
-
-Speed
-
-CountIn
-
-	Metronome
+- auto-scroll
+- save settings
+- Layout
+- Zoom
+- Speed
+- CountIn
+- Metronome
+- alphatex editor
+  - auto complete
+  - Highlight syntax
+- pdf
+- png
+- gp
 
 ### Future Ideas
+
+- alphatex ocr by vlms
 
 ## Disclaimer
 
