@@ -1,11 +1,11 @@
 // TabView.ts
 import { FileView, TFile, WorkspaceLeaf, Notice } from "obsidian";
 import * as alphaTab from "@coderline/alphatab";
-import { ITabUIManager } from "./ITabUIManager";
-import { ITabManager, ITabManagerOptions } from "./ITabManager";
-import * as ITabEventHandlers from "./ITabEventHandlers";
-import { TracksSidebar } from "./components/TracksSidebar";
-import { PlayerStateChangedEventArgs } from "./types"; // 从 types.ts 引入类型
+import { ITabUIManager } from "../ITabUIManager";
+import { ITabManager, ITabManagerOptions } from "../ITabManager";
+import * as ITabEventHandlers from "../ITabEventHandlers";
+import { TracksSidebar } from "../components/TracksSidebar";
+import { PlayerStateChangedEventArgs } from "../types"; // 从 types.ts 引入类型
 
 export const VIEW_TYPE_TAB = "tab-view";
 

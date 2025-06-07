@@ -1,9 +1,9 @@
 // main.ts
 import { Plugin, TFile } from "obsidian";
-import { TabView, VIEW_TYPE_TAB } from "./TabView";
+import { TabView, VIEW_TYPE_TAB } from "./views/TabView";
 import * as path from "path";
 import * as fs from "fs";
-import { registerStyles, isGuitarProFile } from "./utils";
+import { registerStyles, isGuitarProFile } from "./utils/utils";
 
 interface AlphaTabPluginSettings {
 	// 插件设置，可以根据需要扩展

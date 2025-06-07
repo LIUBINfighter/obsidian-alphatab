@@ -9,7 +9,7 @@ import * as alphaTab from "@coderline/alphatab";
 import * as fs from "fs";
 import * as path from "path";
 import { TFile } from "obsidian";
-import { ITabManager } from "./ITabManager";
+import { ITabManager } from "../ITabManager";
 
 export async function initializeAndLoadScore(manager: ITabManager, file: TFile) {
 	const mainElement = manager.getMainElement();

@@ -2,21 +2,16 @@
 
 import * as alphaTab from "@coderline/alphatab";
 import {
-	LayoutMode,
 	type AlphaTabApi,
 	type Settings,
-	WebPlatform,
-	LogLevel,
 } from "@coderline/alphatab";
 import { Notice, TFile, App } from "obsidian";
 
-import * as fs from "fs";
-import * as path from "path";
 import { ITabManagerOptions } from "./types";
-import { FontManager } from "./FontManager";
-import { AlphaTabSettingsHelper } from "./AlphaTabSettingsHelper";
-import { AlphaTabEventBinder } from "./AlphaTabEventBinder";
-import { initializeAndLoadScore } from "./initializeAndLoadScore";
+import { FontManager } from "./alphatab/FontManager";
+import { AlphaTabSettingsHelper } from "./alphatab/AlphaTabSettingsHelper";
+import { AlphaTabEventBinder } from "./alphatab/AlphaTabEventBinder";
+import { initializeAndLoadScore } from "./alphatab/initializeAndLoadScore";
 
 export class ITabManager {
 	private pluginInstance: any;

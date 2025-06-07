@@ -1,5 +1,5 @@
 import * as alphaTab from "@coderline/alphatab";
-import { ITabManagerOptions } from "./types";
+import { ITabManagerOptions } from "../types";
 
 export class AlphaTabEventBinder {
 	static bind(api: any, eventHandlers: ITabManagerOptions, setScore: (score: alphaTab.model.Score | null) => void, setRenderTracks: (tracks: alphaTab.model.Track[]) => void) {
