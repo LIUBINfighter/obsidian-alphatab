@@ -39,7 +39,7 @@ If you have done something brilliant, then go for a pull request.
 
 ## Copyright & Credit
 
-Copyright (c) 2019-2025 Jay Bridge and other contributors. All rights reserved.
+Copyright (c) 2025 Jay Bridge and other contributors. All rights reserved.
 
 Licensed under the MPL 2.0 License.
 
