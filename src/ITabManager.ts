@@ -16,9 +16,9 @@ import { ITabManagerOptions } from "./types";
 import { FontManager } from "./FontManager";
 import { AlphaTabSettingsHelper } from "./AlphaTabSettingsHelper";
 import { AlphaTabEventBinder } from "./AlphaTabEventBinder";
+import { initializeAndLoadScore } from "./initializeAndLoadScore";
 
 export class ITabManager {
-	// 添加缺失的类属性声明
 	private pluginInstance: any;
 	private app: App;
 	private mainElement: HTMLElement;
@@ -31,7 +31,7 @@ export class ITabManager {
 	private renderTracks: alphaTab.model.Track[] = [];
 	private renderWidth = 800;
 	private darkMode = false;
-	private static readonly FONT_STYLE_ELEMENT_ID =
+	public static readonly FONT_STYLE_ELEMENT_ID =
 		"alphatab-manual-font-styles";
 
 	constructor(options: ITabManagerOptions) {
@@ -48,6 +48,44 @@ export class ITabManager {
 				message: "插件清单信息不完整，无法构建资源路径。",
 			});
 		}
+	}
+
+	// 新增接口方法
+	public getMainElement() {
+		return this.mainElement;
+	}
+	public getApp() {
+		return this.app;
+	}
+	public getPluginInstance() {
+		return this.pluginInstance;
+	}
+	public getEventHandlers() {
+		return this.eventHandlers;
+	}
+	public getSettings() {
+		return this.settings;
+	}
+	public setSettings(settings: Settings) {
+		this.settings = settings;
+	}
+	public getRenderTracks() {
+		return this.renderTracks;
+	}
+	public setRenderTracks(tracks: alphaTab.model.Track[]) {
+		this.renderTracks = tracks;
+	}
+	public getRenderWidth() {
+		return this.renderWidth;
+	}
+	public setRenderWidth(width: number) {
+		this.renderWidth = width;
+	}
+	public getDarkMode() {
+		return this.darkMode;
+	}
+	public setDarkModeFlag(flag: boolean) {
+		this.darkMode = flag;
 	}
 
 	setDarkMode(isDark: boolean) {
@@ -72,308 +110,22 @@ export class ITabManager {
 		}
 	}
 
-	private getAbsolutePath(relativePath: string): string {
+	public getAbsolutePath(relativePath: string): string {
 		return AlphaTabSettingsHelper.getAbsolutePath(this.app, this.pluginInstance.manifest.dir, relativePath);
 	}
-
-	private injectFontFaces(fontData: Record<string, string>): boolean {
+	public injectFontFaces(fontData: Record<string, string>): boolean {
 		return FontManager.injectFontFaces(fontData, ["Bravura", "alphaTab"]);
 	}
-
-	private removeInjectedFontFaces() {
+	public removeInjectedFontFaces() {
 		FontManager.removeInjectedFontFaces();
 	}
-
-	private triggerFontPreload(fontFamilies: string[]) {
+	public triggerFontPreload(fontFamilies: string[]) {
 		const fontUrl = this.settings.core.fontDirectory + 'Bravura.woff2';
 		FontManager.triggerFontPreload(fontFamilies, fontUrl);
 	}
 
 	async initializeAndLoadScore(file: TFile) {
-		// Ensure mainElement has dimensions - USER MUST FIX THIS IN TABVIEW.TS
-		if (
-			this.mainElement?.clientWidth === 0 ||
-			this.mainElement?.clientHeight === 0
-		) {
-			console.error(
-				"[AlphaTab] CRITICAL: mainElement has zero width or height."
-			);
-			// Forcing a minimal size here for extreme cases, but this is a hack.
-			this.mainElement.style.minWidth =
-				this.mainElement.style.minWidth || "300px";
-			this.mainElement.style.minHeight =
-				this.mainElement.style.minHeight || "150px";
-			this.eventHandlers.onError?.({
-				message:
-					"AlphaTab容器尺寸为0。已尝试设置最小尺寸，但请在插件视图中修复。",
-			});
-		}
-
-		if (this.api) {
-			try {
-				this.api.destroy();
-			} catch (e) {
-				console.error(
-					"[ITabManager] Error destroying previous API:",
-					e
-				);
-			}
-			this.api = null;
-		}
-		this.score = null;
-		this.renderTracks = [];
-		this.renderWidth = Math.max(this.mainElement?.clientWidth || 300, 300);
-
-		this.settings = new alphaTab.Settings();
-		this.settings.core.engine = "svg";
-		this.settings.core.enableLazyLoading = true;
-		this.settings.core.logLevel = LogLevel.Debug;
-
-		// === Worker 支持 begin ===
-		this.settings.core.useWorkers = true; // 启用 Worker
-
-		const pluginManifestDir = this.pluginInstance.manifest.dir;
-		if (!pluginManifestDir) {
-			/* ... error handling ... */ return;
-		}
-		// Worker 路径设置
-		const workerScriptFileSuffix = "/assets/alphatab/alphaTab.worker.mjs";
-		const workerScriptAssetObsidianPath = pluginManifestDir + workerScriptFileSuffix;
-		if (await this.app.vault.adapter.exists(workerScriptAssetObsidianPath)) {
-			// @ts-ignore
-			this.settings.core.workerFile = this.app.vault.adapter.getResourcePath(workerScriptAssetObsidianPath);
-			// console.log(`[AlphaTab] Worker file path set`);
-		} else {
-			// @ts-ignore
-			this.settings.core.workerFile = null;
-			this.settings.core.useWorkers = false;
-			console.error("[AlphaTab] Worker script not found. Worker disabled.");
-			this.eventHandlers.onError?.({ message: "AlphaTab Worker脚本文件丢失，性能可能会受影响。" });
-		}
-		// === Worker 支持 end ===
-
-		// === Player/SoundFont 支持 begin ===
-		this.settings.player.enablePlayer = true; // 启用 Player
-
-		const soundFontFileSuffix = "/assets/alphatab/soundfont/sonivox.sf2";
-		const soundFontAssetObsidianPath = pluginManifestDir + soundFontFileSuffix;
-		if (await this.app.vault.adapter.exists(soundFontAssetObsidianPath)) {
-			this.settings.player.soundFont = this.app.vault.adapter.getResourcePath(soundFontAssetObsidianPath);
-			console.log(`[ITabManager] Settings: player.soundFont = ${this.settings.player.soundFont}`);
-		} else {
-			this.settings.player.soundFont = null;
-			this.settings.player.enablePlayer = false; // 找不到则禁用
-			console.error(`[ITabManager] SoundFont file NOT FOUND at '${soundFontAssetObsidianPath}'. Player disabled.`);
-			this.eventHandlers.onError?.({ message: "音色库文件丢失，播放功能已禁用。" });
-		}
-		// === Player/SoundFont 支持 end ===
-
-		console.log(
-			"[ITabManager] Manual @font-face + Data URL Mode: Workers/Player disabled."
-		);
-
-		// 移除重复声明，直接使用 pluginManifestDir
-		if (!pluginManifestDir) {
-			/* ... error handling ... */ return;
-		}
-		console.log(
-			`[ITabManager] Plugin manifest dir: ${pluginManifestDir}`
-		);
-
-		// --- Main AlphaTab Script File URL (core.scriptFile) ---
-		const mainScriptFileSuffix = "/assets/alphatab/alphatab.js";
-		const mainScriptAssetObsidianPath =
-			pluginManifestDir + mainScriptFileSuffix;
-		if (await this.app.vault.adapter.exists(mainScriptAssetObsidianPath)) {
-			this.settings.core.scriptFile =
-				this.app.vault.adapter.getResourcePath(
-					mainScriptAssetObsidianPath
-				);
-			console.log(
-				`[ITabManager] Settings: core.scriptFile = ${this.settings.core.scriptFile}`
-			);
-		} else {
-			this.settings.core.scriptFile = null;
-			console.error(
-				`[ITabManager] Main AlphaTab script (alphatab.js) NOT FOUND at '${mainScriptAssetObsidianPath}'.`
-			);
-		}
-
-		// --- Attempt to satisfy fontDirectory check with a dummy value derived from scriptFile ---
-		if (this.settings.core.scriptFile) {
-			const baseScriptPath = this.settings.core.scriptFile.substring(
-				0,
-				this.settings.core.scriptFile.lastIndexOf("/") + 1
-			);
-			this.settings.core.fontDirectory = baseScriptPath + "font/"; // e.g., app://.../assets/alphatab/font/
-		} else {
-			// Fallback if scriptFile isn't set (less ideal but better than null for the check)
-			this.settings.core.fontDirectory = "/alphatab-virtual-fonts/"; // A plausible relative path
-		}
-		console.log(
-			`[ITabManager] Settings: core.fontDirectory (for satisfying internal checks) = ${this.settings.core.fontDirectory}`
-		);
-
-		// --- Load Fonts as Data URLs AND INJECT @font-face ---
-		const smuflFontData: Record<string, string | Record<string, unknown>> =
-			{};
-		let actualSmuflFontFilesLoaded = false;
-		const fontDataUrlsForCss: Record<string, string> = {}; // For injectFontFaces
-
-		try {
-			const fontAssetsRelativePath = "assets/alphatab/font";
-			const fontFilesToLoad = [
-				{ name: "Bravura.woff2", ext: "woff2", mime: "font/woff2" },
-				{ name: "Bravura.woff", ext: "woff", mime: "font/woff" },
-			];
-
-			for (const fontInfo of fontFilesToLoad) {
-				const absoluteFontPath = this.getAbsolutePath(
-					path.join(fontAssetsRelativePath, fontInfo.name)
-				);
-				if (fs.existsSync(absoluteFontPath)) {
-					const fontBuffer = fs.readFileSync(absoluteFontPath);
-					const fontBase64 = fontBuffer.toString("base64");
-					const dataUrl = `data:${fontInfo.mime};base64,${fontBase64}`;
-					smuflFontData[fontInfo.ext] = dataUrl; // For AlphaTab settings
-					fontDataUrlsForCss[fontInfo.ext] = dataUrl; // For manual CSS injection
-					actualSmuflFontFilesLoaded = true;
-					console.log(
-						`[ITabManager] Encoded ${fontInfo.name} as Data URL.`
-					);
-				} else {
-					/* ... warning ... */
-				}
-			}
-
-			const metadataFile = "bravura_metadata.json";
-			const absoluteMetadataPath = this.getAbsolutePath(
-				path.join(fontAssetsRelativePath, metadataFile)
-			);
-			if (fs.existsSync(absoluteMetadataPath)) {
-				const metadataStr = fs.readFileSync(
-					absoluteMetadataPath,
-					"utf8"
-				);
-				try {
-					smuflFontData["json"] = JSON.parse(metadataStr);
-					console.log(
-						`[ITabManager] Parsed ${metadataFile} and added to smuflFontData.json.`
-					);
-				} catch (jsonError) {
-					/* ... error handling ... */
-				}
-			} else {
-				/* ... warning ... */
-			}
-
-			if (actualSmuflFontFilesLoaded) {
-				// @ts-ignore
-				this.settings.core.smuflFontSources = smuflFontData; // Provide to AlphaTab
-				console.log(
-					"[ITabManager] Settings: core.smuflFontSources populated. Keys:",
-					Object.keys(smuflFontData)
-				);
-
-				// MANUALLY INJECT @font-face rules
-				if (!this.injectFontFaces(fontDataUrlsForCss)) {
-					console.error(
-						"[ITabManager] Failed to manually inject @font-face styles. Font rendering will likely fail."
-					);
-					// this.eventHandlers.onError?.({message: "手动注入字体样式失败。"}); // Optional: report error
-				}
-			} else {
-				/* ... critical error handling ... */ return;
-			}
-		} catch (e: any) {
-			/* ... error handling ... */ return;
-		}
-
-		// Display settings
-		this.settings.display.scale = 0.8;
-		this.settings.display.layoutMode = LayoutMode.Page;
-		// 移除有问题的 smuflFont 设置，AlphaTab 会使用默认的 SMuFL 字体配置
-		// this.settings.display.resources.smuflFont = alphaTab.model.Font.withFamilyList(
-		// 	["Bravura", "alphaTab"],
-		// 	21
-		// );
-		console.log(
-			"[ITabManager] Settings: Using default SMuFL font configuration"
-		);
-
-		const initialThemeColors = this.darkMode; /* ... theme colors ... */
-		Object.assign(this.settings.display.resources, initialThemeColors);
-		console.log(
-			"[ITabManager] Final AlphaTab Settings:",
-			JSON.parse(JSON.stringify(this.settings))
-		);
-
-		// Environment hack
-		try {
-			let originalProcess: any, originalModule: any;
-			if (typeof process !== "undefined") {
-				originalProcess = (globalThis as any).process;
-				(globalThis as any).process = undefined;
-			}
-			if (typeof module !== "undefined") {
-				originalModule = (globalThis as any).module;
-				(globalThis as any).module = undefined;
-			}
-			// @ts-ignore
-			if (alphaTab.Environment && typeof WebPlatform !== "undefined") {
-				// @ts-ignore
-				alphaTab.Environment.webPlatform = WebPlatform.Browser;
-				console.log(
-					"[ITabManager] Environment.webPlatform overridden."
-				);
-			}
-
-			console.log("[ITabManager] Initializing AlphaTabApi...");
-
-			this.api = new alphaTab.AlphaTabApi(
-				this.mainElement,
-				this.settings
-			);
-			console.log(
-				"[ITabManager] AlphaTabApi instantiated. API object:",
-				this.api
-			);
-
-			if (this.api) {
-				const eventNames = [
-					"error",
-					"renderStarted",
-					"renderFinished",
-					"scoreLoaded",
-					"playerStateChanged",
-					"fontLoaded",
-					"soundFontLoaded",
-					"playerReady",
-					"ready",
-				];
-				console.log("[ITabManager] Checking API event emitters:");
-				eventNames.forEach((eventName) => {
-					/* ... event emitter check ... */
-				});
-			}
-
-			this.bindEvents();
-		} catch (e: any) {
-			/* ... error handling ... */
-		} finally {
-			/* ... restore globals ... */
-		}
-
-		if (!this.api) {
-			/* ... error handling ... */ return;
-		}
-
-		try {
-			const scoreData = await this.app.vault.readBinary(file);
-			await this.api.load(new Uint8Array(scoreData));
-		} catch (e: any) {
-			/* ... error handling ... */
-		}
+		return initializeAndLoadScore(this, file);
 	}
 
 	private bindEvents() {
@@ -417,5 +169,5 @@ export class ITabManager {
 		console.log("[ITabManager] Destroyed.");
 	}
 }
-export { ITabManagerOptions };
+export type { ITabManagerOptions };
 
