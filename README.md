@@ -15,9 +15,13 @@ Play and Create guitar tabs using AlphaTab. Modern music font and sound! (Suppor
 - Render tabs
 - PlayPause
 - Stop
+- cursor
 
 ### WIP
 
+- Stylesheet
+  - Darkmode
+  - Obsidian css var adaptation
 - Control components
   - auto-scroll
   - save settings
@@ -26,24 +30,28 @@ Play and Create guitar tabs using AlphaTab. Modern music font and sound! (Suppor
   - Speed
   - CountIn
   - Metronome
-  - View more planning feature at [my testing website](https://liubinfighter.github.io/alphatab-vue/) and [its repo](https://github.com/LIUBINfighter/alphatab-vue)
 - alphatex editor
-  - auto complete
   - Highlight syntax
 - pdf
 - png
 - gp
+- View more planning feature at [my testing website](https://liubinfighter.github.io/alphatab-vue/) and [its repo](https://github.com/LIUBINfighter/alphatab-vue)
 
 ### Future Ideas
 
-- alphatex 
-  - ocr by vlms
+- in-markdown render
+- display
+  - record video and sound
+- alphatex
+  - ocr by fine-tune vlms
   - template
+  - auto complete
+  - dashboard
   - share
   - community
-- visual editor
+- visual editor (WYSIWYG)
 - ...
-- and FR from you!
+- and FRs from you!
 
 ## Contributing
 
