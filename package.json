@@ -10,8 +10,8 @@
 		"mix": "node ./scripts/mix-code.js"
 	},
 	"keywords": [],
-	"author": "",
-	"license": "MIT",
+	"author": "Jay Bridge",
+	"license": "MPL-2.0",
 	"devDependencies": {
 		"@types/node": "^16.11.6",
 		"@typescript-eslint/eslint-plugin": "5.29.0",
