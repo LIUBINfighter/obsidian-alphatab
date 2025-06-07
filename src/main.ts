@@ -3,6 +3,7 @@ import { Plugin, TFile } from "obsidian";
 import { TabView, VIEW_TYPE_TAB } from "./TabView";
 import * as path from "path";
 import * as fs from "fs";
+import { registerStyles, isGuitarProFile } from "./utils";
 
 interface AlphaTabPluginSettings {
 	// 插件设置，可以根据需要扩展
@@ -53,7 +54,7 @@ export default class AlphaTabPlugin extends Plugin {
 		// console.log(`[AlphaTab Debug] Using plugin directory: ${actualPluginDir}`);
 
 		// 加载自定义样式
-		this.registerStyles();
+		registerStyles(this);
 
 		// 注册吉他谱文件扩展名的查看器
 		this.registerView(VIEW_TYPE_TAB, (leaf) => {
@@ -73,7 +74,7 @@ export default class AlphaTabPlugin extends Plugin {
 			this.app.workspace.on("file-menu", (menu, file) => {
 				if (
 					file instanceof TFile &&
-					this.isGuitarProFile(file.extension)
+					isGuitarProFile(file.extension)
 				) {
 					menu.addItem((item) => {
 						item.setTitle("Open as Guitar Tab (AlphaTab)")
@@ -92,44 +93,6 @@ export default class AlphaTabPlugin extends Plugin {
 		);
 
 		// console.log("AlphaTab Plugin Loaded");
-	}
-
-	registerStyles() {
-		// 直接读取插件目录下的 styles.css 并内联注入，避免 CSP 问题
-		try {
-			if (!this.actualPluginDir) return;
-			const cssPath = path.join(this.actualPluginDir, "styles.css");
-			if (fs.existsSync(cssPath)) {
-				const css = fs.readFileSync(cssPath, "utf8");
-				const styleEl = document.createElement("style");
-				styleEl.id = "alphatab-plugin-styles";
-				styleEl.innerHTML = css;
-				document.head.appendChild(styleEl);
-
-				// 确保在卸载时移除
-				this.register(() => {
-					const existingStyleEl = document.getElementById(
-						"alphatab-plugin-styles"
-					);
-					if (existingStyleEl) {
-						existingStyleEl.remove();
-					}
-				});
-			} else {
-				console.warn(
-					"[AlphaTab] styles.css not found in plugin directory."
-				);
-			}
-		} catch (e) {
-			console.error("[AlphaTab] Failed to inject styles.css:", e);
-		}
-	}
-
-	isGuitarProFile(extension: string | undefined): boolean {
-		if (!extension) return false;
-		return ["gp", "gp3", "gp4", "gp5", "gpx", "gp7"].includes(
-			extension.toLowerCase()
-		);
 	}
 
 	onunload() {
