@@ -18,13 +18,15 @@ Play and Create guitar tabs using AlphaTab. Modern music font and sound! (Suppor
 
 ### WIP
 
-- auto-scroll
-- save settings
-- Layout
-- Zoom
-- Speed
-- CountIn
-- Metronome
+- Control components
+  - auto-scroll
+  - save settings
+  - Layout
+  - Zoom
+  - Speed
+  - CountIn
+  - Metronome
+  - View more planning feature at [my testing website](https://liubinfighter.github.io/alphatab-vue/) and [its repo](https://github.com/LIUBINfighter/alphatab-vue)
 - alphatex editor
   - auto complete
   - Highlight syntax
@@ -34,15 +36,14 @@ Play and Create guitar tabs using AlphaTab. Modern music font and sound! (Suppor
 
 ### Future Ideas
 
-- alphatex ocr by vlms
-
-## Disclaimer
-
-Please make a backup for your gp files. Some tabs rendered with bad results because of the different encoding methods for Chinese/Japanese/... characters.
-
-This plugin can't automatically download `font`, `soundfont` and `worker.mjs` for you due to obsidian's policy about community plugins. However, we provide a bottom to complete the settings.
-
-<!-- This plugin doesn't have official relationships with AlphaTab.js and Obsidian Official Team. -->
+- alphatex 
+  - ocr by vlms
+  - template
+  - share
+  - community
+- visual editor
+- ...
+- and FR from you!
 
 ## Contributing
 
@@ -59,6 +60,22 @@ If you have done something brilliant, then go for a pull request.
 <!-- ## Star History -->
 
 <!-- Star History Chart -->
+
+## Inspired by ...
+
+[AlphaTab.js](https://alphatab.net)
+
+Bocchi the rock!
+
+Girls' Band Cry
+
+## Disclaimer
+
+Please make a backup for your gp files. Some tabs rendered with bad results because of the different encoding methods for Chinese/Japanese/... characters.
+
+This plugin can't automatically download `font`, `soundfont` and `worker.mjs` for you due to obsidian's policy about community plugins. However, we provide a bottom to complete the settings.
+
+<!-- This plugin doesn't have official relationships with AlphaTab.js and Obsidian Official Team. -->
 
 ## Copyright & Credit
 
