@@ -1,8 +1,10 @@
 # tools
-merge-ts-files.js
+# mix-code.js
 
 # cache
 merged.txt
+merged*.mix.txt
+merged-*.mix.txt
 
 # obsidian
 .obsidian
