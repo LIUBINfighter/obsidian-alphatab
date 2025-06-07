@@ -11,6 +11,7 @@ export class TracksSidebar {
     private onChange?: (tracks?: alphaTab.model.Track[]) => void;
     private sidebarEl: HTMLElement;
     private contentEl: HTMLElement;
+    private selectAllButton!: HTMLButtonElement; // 新增：保存按钮引用
     
     constructor(container: HTMLElement, onChange?: (tracks?: alphaTab.model.Track[]) => void) {
         this.container = container;
@@ -34,13 +35,7 @@ export class TracksSidebar {
         // 创建内容区域
         this.contentEl = this.sidebarEl.createDiv({ cls: "at-sidebar-content" });
         
-        // 添加应用按钮
-        const footerEl = this.sidebarEl.createDiv({ cls: "at-sidebar-footer" });
-        const applyButton = footerEl.createEl("button", { 
-            text: "应用选择",
-            cls: "mod-cta"
-        });
-        applyButton.addEventListener("click", () => this.applySelection());
+        // 移除footer和应用按钮，改为实时生效
         
         // 默认隐藏侧边栏
         this.hide();
@@ -55,13 +50,13 @@ export class TracksSidebar {
             return;
         }
         
-        // 添加全选/取消全选按钮
+        // 添加全选/取消全选切换按钮
         const selectAllContainer = this.contentEl.createDiv({ cls: "at-select-all-container" });
-        const selectAllButton = selectAllContainer.createEl("button", { text: "全选" });
-        selectAllButton.addEventListener("click", () => this.selectAll(true));
-        
-        const deselectAllButton = selectAllContainer.createDiv({ text: "取消全选" });
-        deselectAllButton.addEventListener("click", () => this.selectAll(false));
+        this.selectAllButton = selectAllContainer.createEl("button", { 
+            cls: "at-select-toggle-btn"
+        });
+        this.updateSelectAllButton(); // 设置初始状态
+        this.selectAllButton.addEventListener("click", () => this.toggleSelectAll());
         
         // 为每个音轨创建设置项
         this.tracks.forEach((track) => {
@@ -77,9 +72,62 @@ export class TracksSidebar {
                             } else {
                                 this.renderTracks.delete(track);
                             }
+                            // 立即触发变更回调
+                            this.triggerChange();
+                            // 更新全选按钮状态
+                            this.updateSelectAllButton();
                         });
                 });
         });
+    }
+    
+    // 新增：更新全选按钮的文本和状态
+    private updateSelectAllButton() {
+        if (!this.selectAllButton) return;
+        
+        const allSelected = this.tracks.length > 0 && this.renderTracks.size === this.tracks.length;
+        const isDefaultSelection = this.renderTracks.size === 1 && 
+                                  this.tracks.length > 0 && 
+                                  this.renderTracks.has(this.tracks[0]);
+        
+        if (allSelected) {
+            this.selectAllButton.textContent = "重置为默认";
+            this.selectAllButton.removeClass("partial");
+        } else if (isDefaultSelection) {
+            this.selectAllButton.textContent = "全选";
+            this.selectAllButton.removeClass("partial");
+        } else {
+            this.selectAllButton.textContent = "全选";
+            this.selectAllButton.addClass("partial");
+        }
+    }
+    
+    // 修改：切换全选状态，取消全选时回退到默认第一个轨道
+    private toggleSelectAll() {
+        const allSelected = this.tracks.length > 0 && this.renderTracks.size === this.tracks.length;
+        
+        if (allSelected) {
+            // 当前全选，则回退到默认第一个轨道
+            this.renderTracks.clear();
+            if (this.tracks.length > 0) {
+                this.renderTracks.add(this.tracks[0]);
+            }
+        } else {
+            // 当前未全选，则全选
+            this.renderTracks = new Set(this.tracks);
+        }
+        
+        this.render();
+        // 立即触发变更
+        this.triggerChange();
+    }
+    
+    // 新增：立即触发变更的方法
+    private triggerChange() {
+        const selectedTracks = Array.from(this.renderTracks).sort(
+            (a, b) => a.index - b.index
+        );
+        this.onChange?.(selectedTracks);
     }
     
     public show() {
@@ -110,23 +158,12 @@ export class TracksSidebar {
     }
     
     public setRenderTracks(tracks: alphaTab.model.Track[]) {
-        this.renderTracks = new Set(tracks);
-        this.render();
-    }
-    
-    private selectAll(selected: boolean) {
-        if (selected) {
-            this.renderTracks = new Set(this.tracks);
+        // 确保至少有一个轨道被选中，如果传入空数组则选择第一个
+        if (tracks.length === 0 && this.tracks.length > 0) {
+            this.renderTracks = new Set([this.tracks[0]]);
         } else {
-            this.renderTracks.clear();
+            this.renderTracks = new Set(tracks);
         }
         this.render();
-    }
-    
-    private applySelection() {
-        const selectedTracks = Array.from(this.renderTracks).sort(
-            (a, b) => a.index - b.index
-        );
-        this.onChange?.(selectedTracks);
     }
 }

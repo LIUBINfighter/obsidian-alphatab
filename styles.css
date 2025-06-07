@@ -218,12 +218,14 @@
   padding: 10px;
 }
 
+/* 移除footer样式，因为不再需要应用按钮
 .alphatab-obsidian-plugin .at-sidebar-footer {
   padding: 10px;
   border-top: 1px solid var(--background-modifier-border);
   display: flex;
   justify-content: flex-end;
 }
+*/
 
 .alphatab-obsidian-plugin .at-sidebar-content .setting-item {
   padding: 10px 0;
@@ -232,13 +234,34 @@
 
 .alphatab-obsidian-plugin .at-select-all-container {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   margin-bottom: 10px;
   font-size: 0.9em;
 }
 
-.alphatab-obsidian-plugin .at-select-all-container > div {
+.alphatab-obsidian-plugin .at-select-toggle-btn {
+  padding: 4px 12px;
+  border-radius: 4px;
+  background-color: var(--interactive-normal);
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-normal);
   cursor: pointer;
-  color: var(--text-accent);
-  text-decoration: underline;
+  font-size: 0.85em;
+  transition: all 0.2s ease;
+}
+
+.alphatab-obsidian-plugin .at-select-toggle-btn:hover {
+  background-color: var(--interactive-hover);
+}
+
+.alphatab-obsidian-plugin .at-select-toggle-btn.partial {
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  opacity: 0.8;
+}
+
+/* 为"重置为默认"状态添加特殊样式 */
+.alphatab-obsidian-plugin .at-select-toggle-btn:has-text("重置为默认") {
+  background-color: var(--color-orange);
+  color: var(--text-on-accent);
 }

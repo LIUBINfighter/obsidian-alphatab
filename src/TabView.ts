@@ -185,13 +185,26 @@ export class TabView extends FileView {
 			new Notice("AlphaTab 管理器未准备好，无法更改音轨。");
 			return;
 		}
-		if (selectedTracks && selectedTracks.length > 0) {
-			this.atManager.updateRenderTracks(selectedTracks); // 通知 Manager 更新音轨
-			new Notice(`正在渲染 ${selectedTracks.length} 条音轨。`);
-		} else {
+		
+		// 确保至少有一个轨道被选中
+		if (!selectedTracks || selectedTracks.length === 0) {
 			const allTracks = this.atManager.getAllTracks();
-			this.atManager.updateRenderTracks(allTracks);
-			new Notice("未选择特定音轨，显示所有音轨。");
+			if (allTracks.length > 0) {
+				selectedTracks = [allTracks[0]];
+				// 同步更新侧边栏状态
+				this.tracksSidebar.setRenderTracks(selectedTracks);
+			} else {
+				new Notice("没有可用的音轨。");
+				return;
+			}
+		}
+		
+		this.atManager.updateRenderTracks(selectedTracks);
+		
+		if (selectedTracks.length === 1) {
+			new Notice(`正在渲染轨道：${selectedTracks[0].name}`);
+		} else {
+			new Notice(`正在渲染 ${selectedTracks.length} 条音轨。`);
 		}
 	}
 
