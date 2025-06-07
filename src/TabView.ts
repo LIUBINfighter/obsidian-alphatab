@@ -4,7 +4,7 @@ import * as alphaTab from "@coderline/alphatab";
 import { ITabUIManager } from "./ITabUIManager";
 import { ITabManager, ITabManagerOptions } from "./ITabManager";
 import * as ITabEventHandlers from "./ITabEventHandlers";
-import { TracksSidebar } from "./TracksSidebar";
+import { TracksSidebar } from "./components/TracksSidebar";
 
 // 使用命名空间下的类型
 type PlayerStateChangedEventArgs = any;
