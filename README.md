@@ -6,7 +6,7 @@ Play and create your guitar tabs in Obsidian!
 
 ## Features
 
-Play and Create guitar tabs using AlphaTab. Modern music font and sound! (Support <!-- .alphatab,--> .gp, .gp3, .gp4, .gp5, .gpx).
+Play and Create guitar tabs using AlphaTab. Modern music font and sound! (Support .alphatab, .gp, .gp3, .gp4, .gp5, .gpx).
 
 ## Roadmap
 
@@ -32,9 +32,9 @@ Play and Create guitar tabs using AlphaTab. Modern music font and sound! (Suppor
   - Metronome
 - alphatex editor
   - Highlight syntax
+  - gp export
 - pdf
 - png
-- gp
 - View more planning feature at [my testing website](https://liubinfighter.github.io/alphatab-vue/) and [its repo](https://github.com/LIUBINfighter/alphatab-vue)
 
 ### Future Ideas
