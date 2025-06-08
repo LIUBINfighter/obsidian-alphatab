@@ -37,13 +37,22 @@ export class TabView extends FileView {
 	private uiManager!: ITabUIManager;
 	private atManager!: ITabManager;
 	private tracksSidebar!: TracksSidebar;
-	// private mainContentEl!: HTMLElement; // 移除
-	private tabDisplay!: TabDisplay; // 新增
+	private tabDisplay!: TabDisplay;
 	private pluginInstance: any; // 主插件实例
+	private fileModifyHandler: (file: TFile) => void; // 文件修改处理器
 
 	constructor(leaf: WorkspaceLeaf, plugin: any) {
 		super(leaf);
-		this.pluginInstance = plugin; // 保存插件实例
+		this.pluginInstance = plugin;
+
+		// 初始化文件修改监听处理器
+		this.fileModifyHandler = (file: TFile) => {
+			// 检查修改的文件是否是当前打开的文件
+			if (this.currentFile && file && file.path === this.currentFile.path) {
+				console.log(`[TabView] 检测到文件变化: ${file.basename}，正在重新加载...`);
+				this.reloadFile();
+			}
+		};
 
 		this.containerEl.addClasses([
 			"itab"
@@ -55,7 +64,8 @@ export class TabView extends FileView {
 				// 切换侧边栏显示或隐藏
 				this.tracksSidebar.toggle();
 			} else {
-				new Notice("AlphaTab 管理器尚未初始化。");
+				// 替换为内部错误显示
+				this.showError("AlphaTab 管理器尚未初始化。");
 			}
 		});
 
@@ -86,6 +96,9 @@ export class TabView extends FileView {
 	override async onLoadFile(file: TFile): Promise<void> {
 		this.currentFile = file;
 		this.contentEl.empty(); // 清空先前内容
+		
+		// 注册文件变更监听器
+		this.registerFileWatcher();
 
 		// 创建布局容器
 		const layoutContainer = this.contentEl.createDiv({ cls: "at-layout-container" });
@@ -221,12 +234,11 @@ export class TabView extends FileView {
 				// 使用内容直接渲染
 				this.uiManager.showLoadingOverlay("正在解析 AlphaTex 内容...");
 				await this.atManager.initializeAndLoadFromTex(fileContent);
-				new Notice(`AlphaTex 文件 "${file.basename}" 已加载`);
+				// 使用内部通知替代全局 Notice
+				this.showNotification(`AlphaTex 文件 "${file.basename}" 已加载`);
 			} catch (error) {
 				console.error("[TabView] 加载 AlphaTex 文件失败", error);
-				this.uiManager.showErrorInOverlay(
-					`解析 AlphaTex 内容失败: ${error.message || "未知错误"}`
-				);
+				this.showError(`解析 AlphaTex 内容失败: ${error.message || "未知错误"}`);
 			}
 		} else {
 			// 原有的二进制文件加载方式
@@ -234,10 +246,110 @@ export class TabView extends FileView {
 		}
 	}
 
+	// 注册文件变更监听
+	private registerFileWatcher() {
+		this.app.vault.on("modify", this.fileModifyHandler);
+		console.log("[TabView] 已注册文件监听");
+	}
+
+	// 注销文件变更监听
+	private unregisterFileWatcher() {
+		this.app.vault.off("modify", this.fileModifyHandler);
+		console.log("[TabView] 已注销文件监听");
+	}
+
+	// 重新加载当前文件内容
+	private async reloadFile() {
+		if (!this.currentFile || !this.atManager) {
+			return;
+		}
+
+		const fileExt = this.currentFile.extension.toLowerCase();
+		
+		// 只处理 AlphaTex/AlphaTab 文件
+		if (fileExt === "alphatab" || fileExt === "alphatex") {
+			try {
+				// 读取最新内容
+				const fileContent = await this.app.vault.read(this.currentFile);
+				
+				// 如果内容为空，显示提示
+				if (!fileContent || fileContent.trim() === "") {
+					this.uiManager.showErrorInOverlay(
+						"文件内容为空。请在编辑器中添加 AlphaTex 内容后再预览。"
+					);
+					return;
+				}
+				
+				// 更新加载状态
+				this.uiManager.showLoadingOverlay("正在更新预览...");
+				
+				// 重新渲染内容
+				await this.atManager.initializeAndLoadFromTex(fileContent);
+				console.log(`[TabView] 已重新加载文件: ${this.currentFile.basename}`);
+			} catch (error) {
+				console.error("[TabView] 重新加载文件失败", error);
+				this.uiManager.showErrorInOverlay(
+					`重新加载文件失败: ${error.message || "未知错误"}`
+				);
+			}
+		}
+	}
+
+	// 添加统一的错误显示方法
+	private showError(message: string, timeout = 3000) {
+		// 如果 UI 管理器已初始化，则使用它的覆盖层显示错误
+		if (this.uiManager) {
+			this.uiManager.showErrorInOverlay(message, timeout);
+		} else {
+			// 回退到基本错误显示
+			const errorEl = this.contentEl.createDiv({
+				cls: "at-floating-error",
+				text: message
+			});
+			
+			// 添加关闭按钮
+			const closeBtn = errorEl.createDiv({
+				cls: "at-error-close",
+				text: "×"
+			});
+			closeBtn.addEventListener("click", () => {
+				errorEl.remove();
+			});
+			
+			// 自动消失
+			if (timeout > 0) {
+				setTimeout(() => {
+					errorEl.remove();
+				}, timeout);
+			}
+		}
+	}
+	
+	// 添加用于通知的方法（非错误类信息）
+	private showNotification(message: string, timeout = 2000) {
+		if (this.uiManager) {
+			// 可以在 uiManager 中添加显示通知的方法
+			// 暂时使用已有的错误显示，但应用不同样式
+			this.uiManager.showOverlayMessage(message, timeout);
+		} else {
+			const noticeEl = this.contentEl.createDiv({
+				cls: "at-floating-notice",
+				text: message
+			});
+			
+			// 自动消失
+			if (timeout > 0) {
+				setTimeout(() => {
+					noticeEl.remove();
+				}, timeout);
+			}
+		}
+	}
+	
 	// 处理从轨道侧边栏的选择变更
 	private onChangeTracksFromSidebar(selectedTracks?: alphaTab.model.Track[]) {
 		if (!this.atManager) {
-			new Notice("AlphaTab 管理器未准备好，无法更改音轨。");
+			this.showError("AlphaTab 管理器未准备好，无法更改音轨。");
 			return;
 		}
 		
@@ -249,7 +361,7 @@ export class TabView extends FileView {
 				// 同步更新侧边栏状态
 				this.tracksSidebar.setRenderTracks(selectedTracks);
 			} else {
-				new Notice("没有可用的音轨。");
+				this.showError("没有可用的音轨。");
 				return;
 			}
 		}
@@ -257,9 +369,9 @@ export class TabView extends FileView {
 		this.atManager.updateRenderTracks(selectedTracks);
 		
 		if (selectedTracks.length === 1) {
-			new Notice(`正在渲染轨道：${selectedTracks[0].name}`);
+			this.showNotification(`正在渲染轨道：${selectedTracks[0].name}`);
 		} else {
-			new Notice(`正在渲染 ${selectedTracks.length} 条音轨。`);
+			this.showNotification(`正在渲染 ${selectedTracks.length} 条音轨。`);
 		}
 	}
 
@@ -314,6 +426,9 @@ export class TabView extends FileView {
 	}
 
 	override async onUnloadFile(file: TFile): Promise<void> {
+		// 注销文件监听
+		this.unregisterFileWatcher();
+		
 		console.log(`[TabView] Unloading file: ${file.name}`);
 		if (this.atManager) {
 			this.atManager.destroy();
@@ -332,6 +447,9 @@ export class TabView extends FileView {
 	}
 	
 	async onunload() {
+		// 注销文件监听
+		this.unregisterFileWatcher();
+		
 		// 当视图本身被关闭和销毁时
 		console.log("[TabView] Final onunload triggered.");
 		if (this.atManager) {

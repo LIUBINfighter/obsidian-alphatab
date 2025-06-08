@@ -5,7 +5,7 @@ import {
 	type AlphaTabApi,
 	type Settings,
 } from "@coderline/alphatab";
-import { Notice, TFile, App } from "obsidian";
+import { TFile, App } from "obsidian";
 
 import { ITabManagerOptions } from "./types";
 import { FontManager } from "./alphatab/FontManager";
@@ -135,7 +135,14 @@ export class ITabManager {
 	// ... other methods ...
 	playPause() {
 		if (!this.api || !this.settings.player.enablePlayer) {
-			new Notice("播放器当前已禁用");
+			// 替换全局 Notice 为错误回调
+			if (this.eventHandlers.onError) {
+				this.eventHandlers.onError({
+					message: "播放器当前已禁用"
+				});
+			} else {
+				console.warn("播放器当前已禁用");
+			}
 			return;
 		}
 		this.api.playPause();

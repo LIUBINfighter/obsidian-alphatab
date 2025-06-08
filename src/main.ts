@@ -1,5 +1,5 @@
 // main.ts
-import { Plugin, TFile } from "obsidian";
+import { Notice, Plugin, TFile } from "obsidian";
 import { TabView, VIEW_TYPE_TAB } from "./views/TabView";
 import { TexEditorView, VIEW_TYPE_TEX_EDITOR } from "./views/TexEditorView";
 import * as path from "path";
@@ -154,28 +154,30 @@ export default class AlphaTabPlugin extends Plugin {
 					// 添加同时打开编辑和预览的选项
 					menu.addItem((item) => {
 						item.setTitle("同时打开编辑和预览")
-							.setIcon("layout-split")
+							.setIcon("columns")
 							.onClick(async () => {
-								// 在工作区中创建两个标签页
 								try {
 									// 先打开编辑视图
-									const editorLeaf = this.app.workspace.getLeaf('tab');
+									const editorLeaf = this.app.workspace.getLeaf();
 									await editorLeaf.setViewState({
 										type: VIEW_TYPE_TEX_EDITOR,
 										state: { file: file.path }
 									});
 									
-									// 再打开预览视图
-									const previewLeaf = this.app.workspace.getLeaf('tab');
+									// 水平分割当前叶子，创建并排视图
+									const previewLeaf = this.app.workspace.splitActiveLeaf("vertical");
+									
+									// 在右侧打开预览视图
 									await previewLeaf.setViewState({
 										type: VIEW_TYPE_TAB,
 										state: { file: file.path }
 									});
 									
-									// 聚焦到编辑器标签页
+									// 聚焦到编辑器视图
 									this.app.workspace.setActiveLeaf(editorLeaf, { focus: true });
 									
-									new Notice("已在工作区打开编辑和预览标签页");
+									// 使用通知（保留这个全局通知，因为这时还没有视图来显示内部通知）
+									new Notice("已打开编辑和预览并排视图");
 								} catch (error) {
 									console.error("打开视图出错:", error);
 									new Notice(`打开视图失败: ${error.message}`);
