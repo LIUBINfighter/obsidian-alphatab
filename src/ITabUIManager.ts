@@ -151,15 +151,14 @@ export class ITabUIManager {
 		this.atOverlayRef.removeClass("error");
 	}
 	showErrorInOverlay(message: string, timeout = 5000): void {
-		const container = this.container || document.body;
-		const errorDiv = document.createElement("div");
-		errorDiv.className = "itabs-error-overlay";
-		errorDiv.textContent = message;
-		container.appendChild(errorDiv);
-
-		setTimeout(() => {
-			errorDiv.remove();
-		}, timeout);
+		this.atOverlayContentRef.setText(message);
+		this.atOverlayRef.style.display = "flex";
+		this.atOverlayRef.addClass("error");
+		if (timeout > 0) {
+			setTimeout(() => {
+				this.hideErrorOverlay();
+			}, timeout);
+		}
 	}
 	hideLoadingOverlay() {
 		this.atOverlayRef.style.display = "none";
@@ -220,10 +219,8 @@ export class ITabUIManager {
 	 * 隐藏错误覆盖层
 	 */
 	hideErrorOverlay(): void {
-		const container = this.container || document.body;
-		const errorElements = container.querySelectorAll('.itabs-error-overlay');
-		errorElements.forEach((el: Element) => {
-			el.remove();
-		});
+		this.atOverlayRef.style.display = "none";
+		this.atOverlayRef.removeClass("error");
+		this.atOverlayContentRef.empty();
 	}
 }

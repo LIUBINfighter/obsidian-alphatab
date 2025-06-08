@@ -1,5 +1,4 @@
 import type { ITabUIManager } from "../ITabUIManager";
-import { Notice } from "obsidian";
 
 export function handleAlphaTabError(
 	error: { message?: string },
@@ -9,6 +8,5 @@ export function handleAlphaTabError(
 	const errorMessage = `AlphaTab Error: ${
 		error.message || "An unexpected issue occurred within AlphaTab."
 	}`;
-	ui.showErrorInOverlay(errorMessage);
-	new Notice(errorMessage, 10000);
+	ui.showErrorInOverlay(errorMessage, 10000);
 }

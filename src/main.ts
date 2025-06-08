@@ -177,7 +177,7 @@ export default class AlphaTabPlugin extends Plugin {
 									this.app.workspace.setActiveLeaf(editorLeaf, { focus: true });
 									
 									// 使用通知（保留这个全局通知，因为这时还没有视图来显示内部通知）
-									new Notice("已打开编辑和预览并排视图");
+									// new Notice("已打开编辑和预览并排视图");
 								} catch (error) {
 									console.error("打开视图出错:", error);
 									new Notice(`打开视图失败: ${error.message}`);

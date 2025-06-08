@@ -234,8 +234,8 @@ export class TabView extends FileView {
 				// 使用内容直接渲染
 				this.uiManager.showLoadingOverlay("正在解析 AlphaTex 内容...");
 				await this.atManager.initializeAndLoadFromTex(fileContent);
-				// 使用内部通知替代全局 Notice
-				this.showNotification(`AlphaTex 文件 "${file.basename}" 已加载`);
+				// 使用console.log替代showNotification
+				console.log(`AlphaTex 文件 "${file.basename}" 已加载`);
 			} catch (error) {
 				console.error("[TabView] 加载 AlphaTex 文件失败", error);
 				this.showError(`解析 AlphaTex 内容失败: ${error.message || "未知错误"}`);
@@ -327,23 +327,8 @@ export class TabView extends FileView {
 	
 	// 添加用于通知的方法（非错误类信息）
 	private showNotification(message: string, timeout = 2000) {
-		if (this.uiManager) {
-			// 可以在 uiManager 中添加显示通知的方法
-			// 暂时使用已有的错误显示，但应用不同样式
-			this.uiManager.showOverlayMessage(message, timeout);
-		} else {
-			const noticeEl = this.contentEl.createDiv({
-				cls: "at-floating-notice",
-				text: message
-			});
-			
-			// 自动消失
-			if (timeout > 0) {
-				setTimeout(() => {
-					noticeEl.remove();
-				}, timeout);
-			}
-		}
+		// 已停用UI通知，改为使用console.log
+		console.log(`[TabView Debug] ${message}`);
 	}
 	
 	// 处理从轨道侧边栏的选择变更
@@ -369,9 +354,9 @@ export class TabView extends FileView {
 		this.atManager.updateRenderTracks(selectedTracks);
 		
 		if (selectedTracks.length === 1) {
-			this.showNotification(`正在渲染轨道：${selectedTracks[0].name}`);
+			console.log(`正在渲染轨道：${selectedTracks[0].name}`);
 		} else {
-			this.showNotification(`正在渲染 ${selectedTracks.length} 条音轨。`);
+			console.log(`正在渲染 ${selectedTracks.length} 条音轨。`);
 		}
 	}
 
