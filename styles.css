@@ -1,3 +1,4 @@
+/* --- at.css --- */
 /* styles.css */
 /* Add this class to your TabView's containerEl */
 .itab .at-wrap {
@@ -275,4 +276,394 @@
 	color: var(--text-on-accent);
 }
 
+
+
+/* --- notifications.css --- */
+/* 悬浮错误样式 */
+.at-floating-error,
+.at-error-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(220, 50, 50, 0.9);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 5px;
+    max-width: 80%;
+    text-align: center;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    animation: at-fade-in 0.3s ease;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* 错误消息样式 */
+.at-error-message {
+    margin-right: 20px; /* 为关闭按钮留出空间 */
+    word-wrap: break-word;
+}
+
+/* 悬浮通知样式 */
+.at-floating-notice,
+.at-overlay-notification {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(50, 120, 220, 0.9);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 4px;
+    text-align: center;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    animation: at-fade-in 0.3s ease;
+    max-width: 80%;
+    font-size: 13px;
+}
+
+/* 错误关闭按钮 */
+.at-error-close,
+.at-error-close-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.at-error-close:hover,
+.at-error-close-btn:hover {
+    opacity: 1;
+}
+
+/* 动画 */
+@keyframes at-fade-in {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -45%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+@keyframes at-fade-in-bottom {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%);
+    }
+}
+
+/* 为底部通知设置单独的动画 */
+.at-floating-notice,
+.at-overlay-notification {
+    animation: at-fade-in-bottom 0.3s ease;
+}
+
+/* 深色模式调整 */
+.theme-dark .at-floating-error,
+.theme-dark .at-error-overlay {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.theme-dark .at-floating-notice,
+.theme-dark .at-overlay-notification {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* --- tex-editor.css --- */
+/* TexEditorView 双栏布局样式 */
+.tex-editor-layout {
+    display: flex;
+    height: 100%;
+    gap: 8px;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+.tex-editor-left-panel {
+    flex: 1 1 50%;
+    min-width: 300px;
+    border-right: 1px solid var(--background-modifier-border);
+    padding-right: 8px;
+    display: flex;
+    flex-direction: column;
+}
+
+.tex-editor-right-panel {
+    flex: 1 1 50%;
+    min-width: 300px;
+    padding-left: 8px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* TexEditor 组件样式 */
+.at-tex-editor {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.tex-editor-header {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--background-modifier-border);
+    margin-bottom: 8px;
+}
+
+.tex-editor-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-normal);
+}
+
+.tex-editor-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.tex-editor-textarea {
+    flex: 1;
+    width: 100%;
+    min-height: 300px;
+    resize: vertical;
+    font-family: var(--font-monospace, 'Courier New', monospace);
+    font-size: 14px;
+    line-height: 1.5;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    padding: 12px;
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.tex-editor-textarea:focus {
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+}
+
+.tex-editor-textarea::placeholder {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* 滚动条样式 */
+.tex-editor-textarea::-webkit-scrollbar {
+    width: 8px;
+}
+
+.tex-editor-textarea::-webkit-scrollbar-track {
+    background: var(--background-secondary);
+    border-radius: 4px;
+}
+
+.tex-editor-textarea::-webkit-scrollbar-thumb {
+    background: var(--background-modifier-border);
+    border-radius: 4px;
+}
+
+.tex-editor-textarea::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* AlphaTab 显示区域样式优化 */
+.tex-editor-right-panel .at-main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 400px;
+}
+
+.tex-editor-right-panel .at-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.tex-editor-right-panel .at-content {
+    flex: 1;
+    position: relative;
+}
+
+.tex-editor-right-panel .at-viewport {
+    height: 100%;
+    overflow: auto;
+}
+
+.tex-editor-right-panel .at-main {
+    min-width: 300px;
+    min-height: 200px;
+}
+
+/* 控制栏样式 */
+.tex-editor-right-panel .at-controls {
+    flex-shrink: 0;
+    padding: 8px 0;
+    border-top: 1px solid var(--background-modifier-border);
+    background-color: var(--background-secondary);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 覆盖层样式 */
+.tex-editor-right-panel .at-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(var(--background-primary-rgb), 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.tex-editor-right-panel .at-overlay.error {
+    background-color: rgba(var(--background-modifier-error-rgb, 220, 53, 69), 0.1);
+}
+
+.tex-editor-right-panel .at-overlay-content {
+    text-align: center;
+    color: var(--text-normal);
+    font-size: 14px;
+    padding: 20px;
+    border-radius: 8px;
+    background-color: var(--background-primary);
+    box-shadow: var(--shadow-s);
+    max-width: 300px;
+}
+
+.tex-editor-right-panel .at-overlay.error .at-overlay-content {
+    color: var(--text-error);
+    border: 1px solid var(--background-modifier-error);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .tex-editor-layout {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .tex-editor-left-panel,
+    .tex-editor-right-panel {
+        flex: 1 1 auto;
+        min-width: unset;
+        border-right: none;
+        padding-right: 0;
+        padding-left: 0;
+    }
+    
+    .tex-editor-left-panel {
+        border-bottom: 1px solid var(--background-modifier-border);
+        padding-bottom: 8px;
+    }
+    
+    .tex-editor-right-panel {
+        padding-top: 8px;
+    }
+}
+
+/* 暗色主题适配 */
+.theme-dark .tex-editor-textarea {
+    background-color: var(--background-primary);
+    border-color: var(--background-modifier-border);
+    color: var(--text-normal);
+}
+
+.theme-dark .tex-editor-textarea:focus {
+    border-color: var(--interactive-accent);
+}
+
+/* 高对比度主题支持 */
+@media (prefers-contrast: high) {
+    .tex-editor-textarea {
+        border-width: 2px;
+    }
+    
+    .tex-editor-textarea:focus {
+        border-width: 2px;
+        box-shadow: 0 0 0 3px var(--interactive-accent-hover);
+    }
+}
+
+/* 减少动画设置支持 */
+@media (prefers-reduced-motion: reduce) {
+    .tex-editor-textarea {
+        transition: none;
+    }
+}
+
+/* 调整控制按钮在编辑器中的样式 */
+.tex-editor-right-panel .at-controls button {
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 4px;
+    border: 1px solid var(--background-modifier-border);
+    background-color: var(--interactive-normal);
+    color: var(--text-normal);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tex-editor-right-panel .at-controls button:hover {
+    background-color: var(--interactive-hover);
+    border-color: var(--interactive-accent);
+}
+
+.tex-editor-right-panel .at-controls button:active {
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+}
+
+.tex-editor-right-panel .at-controls button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 选择控件样式 */
+.tex-editor-right-panel .at-controls select {
+    padding: 4px 8px;
+    font-size: 12px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+}
+
+/* 时间显示样式 */
+.tex-editor-right-panel .time-position {
+    font-family: var(--font-monospace, 'Courier New', monospace);
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 4px 8px;
+    background-color: var(--background-secondary);
+    border-radius: 4px;
+}
 
