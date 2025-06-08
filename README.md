@@ -19,11 +19,15 @@ Play and Create guitar tabs using AlphaTab. Modern music font and sound! (Suppor
 
 ### WIP
 
+- Darkmode
+- auto-scroll
+
+### Plan
+
+- i18n adaptation
 - Stylesheet
-  - Darkmode
   - Obsidian css var adaptation
 - Control components
-  - auto-scroll
   - save settings
   - Layout
   - Zoom
