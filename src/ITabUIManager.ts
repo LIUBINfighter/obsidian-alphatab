@@ -46,12 +46,6 @@ export class ITabUIManager {
 			cls: "at-overlay-content",
 		});
 		
-		// 添加专门用于 AlphaTab 错误显示的元素
-		const errorIndicator = this.atOverlayContentRef.createDiv({
-			cls: "at-error-indicator"
-		});
-		errorIndicator.innerHTML = "⚠️"; // 添加错误图标
-		
 		const atContent = this.atWrap.createDiv({ cls: "at-content" });
 		this.atViewportRef = atContent.createDiv({ cls: "at-viewport" });
 		this.atMainRef = this.atViewportRef.createDiv({ cls: "at-main" });
