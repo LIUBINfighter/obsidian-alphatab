@@ -36,6 +36,7 @@ export class ITabUIManager {
 	}
 
 	createUI(container: HTMLElement) {
+		this.container = container; // 保存容器引用，以便后续使用
 		this.atWrap = container.createDiv({ cls: "at-wrap" });
 		this.atOverlayRef = this.atWrap.createDiv({
 			cls: "at-overlay",
@@ -44,6 +45,13 @@ export class ITabUIManager {
 		this.atOverlayContentRef = this.atOverlayRef.createDiv({
 			cls: "at-overlay-content",
 		});
+		
+		// 添加专门用于 AlphaTab 错误显示的元素
+		const errorIndicator = this.atOverlayContentRef.createDiv({
+			cls: "at-error-indicator"
+		});
+		errorIndicator.innerHTML = "⚠️"; // 添加错误图标
+		
 		const atContent = this.atWrap.createDiv({ cls: "at-content" });
 		this.atViewportRef = atContent.createDiv({ cls: "at-viewport" });
 		this.atMainRef = this.atViewportRef.createDiv({ cls: "at-main" });
@@ -187,31 +195,6 @@ export class ITabUIManager {
 	setCountInActive(active: boolean) {
 		if (this.countInButton) {
 			this.countInButton.setActive(active);
-		}
-	}
-
-	/**
-	 * 在覆盖层中显示一般通知信息
-	 */
-	showOverlayMessage(message: string, timeout = 2000): void {
-		// 确保存在通知容器
-		const container = this.container || document.body;
-		
-		// 创建通知元素
-		const messageEl = document.createElement("div");
-		messageEl.className = "at-floating-notice";
-		messageEl.textContent = message;
-		
-		// 添加到容器中
-		container.appendChild(messageEl);
-		
-		// 自动消失
-		if (timeout > 0) {
-			setTimeout(() => {
-				if (messageEl.parentNode) {
-					messageEl.parentNode.removeChild(messageEl);
-				}
-			}, timeout);
 		}
 	}
 
