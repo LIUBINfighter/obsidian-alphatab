@@ -136,6 +136,52 @@ export default class AlphaTabPlugin extends Plugin {
 								this.app.workspace.revealLeaf(leaf);
 							});
 					});
+					
+					// 添加预览选项
+					menu.addItem((item) => {
+						item.setTitle("在 AlphaTab 中预览")
+							.setIcon("eye")
+							.onClick(async () => {
+								const leaf = this.app.workspace.getLeaf(false);
+								await leaf.setViewState({
+									type: VIEW_TYPE_TAB,
+									state: { file: file.path },
+								});
+								this.app.workspace.revealLeaf(leaf);
+							});
+					});
+					
+					// 添加同时打开编辑和预览的选项
+					menu.addItem((item) => {
+						item.setTitle("同时打开编辑和预览")
+							.setIcon("layout-split")
+							.onClick(async () => {
+								// 在工作区中创建两个标签页
+								try {
+									// 先打开编辑视图
+									const editorLeaf = this.app.workspace.getLeaf('tab');
+									await editorLeaf.setViewState({
+										type: VIEW_TYPE_TEX_EDITOR,
+										state: { file: file.path }
+									});
+									
+									// 再打开预览视图
+									const previewLeaf = this.app.workspace.getLeaf('tab');
+									await previewLeaf.setViewState({
+										type: VIEW_TYPE_TAB,
+										state: { file: file.path }
+									});
+									
+									// 聚焦到编辑器标签页
+									this.app.workspace.setActiveLeaf(editorLeaf, { focus: true });
+									
+									new Notice("已在工作区打开编辑和预览标签页");
+								} catch (error) {
+									console.error("打开视图出错:", error);
+									new Notice(`打开视图失败: ${error.message}`);
+								}
+							});
+					});
 				}
 			})
 		);

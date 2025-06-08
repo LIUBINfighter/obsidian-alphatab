@@ -227,6 +227,38 @@ export class ITabManager {
 
 		console.log("[ITabManager] AlphaTab API 已为 TexEditor 初始化完成");
 	}
+
+	/**
+	 * 从 AlphaTex 文本内容初始化并加载乐谱
+	 */
+	async initializeAndLoadFromTex(texContent: string): Promise<void> {
+		try {
+			// 确保 API 已初始化
+			if (!this.api) {
+				// 使用正确的初始化方法
+				await this.initializeForTexEditor();
+			}
+			
+			if (!this.api) {
+				throw new Error("无法初始化 AlphaTab API");
+			}
+			
+			// 渲染 AlphaTex 内容
+			this.api.tex(texContent);
+			
+			// 通知加载成功
+			if (this.eventHandlers.onScoreLoaded && this.api.score) {
+				this.score = this.api.score;
+				this.eventHandlers.onScoreLoaded(this.score);
+			}
+		} catch (error) {
+			console.error("[ITabManager] AlphaTex 渲染失败:", error);
+			if (this.eventHandlers.onError) {
+				this.eventHandlers.onError(error);
+			}
+			throw error;
+		}
+	}
 }
 export type { ITabManagerOptions };
 

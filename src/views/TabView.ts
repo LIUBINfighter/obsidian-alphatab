@@ -201,7 +201,37 @@ export class TabView extends FileView {
 			);
 			return;
 		}
-		await this.atManager.initializeAndLoadScore(file);
+
+		// 新增：根据文件类型不同，采用不同的加载方式
+		const fileExt = file.extension.toLowerCase();
+		
+		if (fileExt === "alphatab" || fileExt === "alphatex") {
+			try {
+				// AlphaTex/AlphaTab 文件需要先读取内容
+				const fileContent = await this.app.vault.read(file);
+				
+				// 如果是空文件，显示提示并返回
+				if (!fileContent || fileContent.trim() === "") {
+					this.uiManager.showErrorInOverlay(
+						"文件内容为空。请在编辑器中添加 AlphaTex 内容后再预览。"
+					);
+					return;
+				}
+				
+				// 使用内容直接渲染
+				this.uiManager.showLoadingOverlay("正在解析 AlphaTex 内容...");
+				await this.atManager.initializeAndLoadFromTex(fileContent);
+				new Notice(`AlphaTex 文件 "${file.basename}" 已加载`);
+			} catch (error) {
+				console.error("[TabView] 加载 AlphaTex 文件失败", error);
+				this.uiManager.showErrorInOverlay(
+					`解析 AlphaTex 内容失败: ${error.message || "未知错误"}`
+				);
+			}
+		} else {
+			// 原有的二进制文件加载方式
+			await this.atManager.initializeAndLoadScore(file);
+		}
 	}
 
 	// 处理从轨道侧边栏的选择变更
