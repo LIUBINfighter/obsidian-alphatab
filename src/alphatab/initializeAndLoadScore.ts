@@ -1,6 +1,6 @@
 /*
 这一段是在obsidian中使用AlphaTabApi的核心。
-“环境 hack” 主要是对 process、module、alphaTab.Environment.webPlatform 做兼容性处理
+"环境 hack" 主要是对 process、module、alphaTab.Environment.webPlatform 做兼容性处理
 确保 AlphaTab 能在 Obsidian 的 Electron/Web 环境下正常运行。
 
 AlphaTabApi 的初始化即 manager.api = new alphaTab.AlphaTabApi(...)，紧跟在 hack 代码之后。
@@ -225,9 +225,9 @@ export async function initializeAndLoadScore(manager: ITabManager, file: TFile) 
 		console.log("[ITabManager] 滚动元素回退到main:", mainElement);
 	}
 	
-	settings.player.scrollMode = alphaTab.ScrollMode.Continuous; // 连续滚动模式
-	settings.player.scrollOffsetY = 50; // 垂直滚动偏移量
-	settings.player.scrollSpeed = 300; // 滚动速度（毫秒）
+	settings.player.scrollMode = alphaTab.ScrollMode.OffScreen; // 改为仅在光标离开屏幕时滚动
+	settings.player.scrollOffsetY = 20; // 减小垂直滚动偏移量
+	settings.player.scrollSpeed = 800; // 增加滚动时间，使动画更平滑
 	settings.player.nativeBrowserSmoothScroll = true; // 使用浏览器原生平滑滚动
 	
 	console.log(

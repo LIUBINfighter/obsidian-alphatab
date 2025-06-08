@@ -65,8 +65,8 @@ export class TabView extends FileView {
 		this.cursorScrollManager = new CursorScrollManager({
 			enabled: true,
 			smoothScroll: true,
-			offsetY: 50,
-			scrollSpeed: 300,
+			offsetY: 0,  // 减小偏移量，使滚动更温和
+			scrollSpeed: 500,  // 增加滚动时间，使动画更平滑
 			autoScrollOnPlay: true
 		});
 
@@ -85,10 +85,10 @@ export class TabView extends FileView {
 		// this.addAction("download", "下载 MIDI", this.downloadMidi.bind(this));
 
 		// 添加滚动调试按钮（开发用）
-		this.addAction("search", "滚动调试", () => {
-			ScrollDebugger.debugScrollSettings(this.atManager?.api, "[手动调试]");
-			ScrollDebugger.testManualScroll(this.atManager?.api);
-		});
+		// this.addAction("search", "滚动调试", () => {
+		// 	ScrollDebugger.debugScrollSettings(this.atManager?.api, "[手动调试]");
+		// 	ScrollDebugger.testManualScroll(this.atManager?.api);
+		// });
 	}
 
 	getViewType(): string {

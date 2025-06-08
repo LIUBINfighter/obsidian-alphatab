@@ -148,11 +148,11 @@ export class ITabUIManager {
 		this.atControlsRef.appendChild(this.savePngButton.getElement());
 		
 		// 光标跟随滚动按钮
-		this.scrollFollowButton = new ToggleButton({
-			text: "跟随光标",
-			active: true // 默认启用
-		});
-		this.atControlsRef.appendChild(this.scrollFollowButton.getElement());
+		// this.scrollFollowButton = new ToggleButton({
+		// 	text: "跟随光标",
+		// 	active: true // 默认启用
+		// });
+		// this.atControlsRef.appendChild(this.scrollFollowButton.getElement());
 	}
 
 	showLoadingOverlay(message: string) {
