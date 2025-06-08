@@ -20,6 +20,7 @@ export class AlphaTabEventBinder {
 			});
 		}
 		safeBind("playerStateChanged", eventHandlers.onPlayerStateChanged);
+		safeBind("playerPositionChanged", eventHandlers.onPlayerPositionChanged);
 		safeBind("fontLoaded", eventHandlers.onFontLoaded);
 		safeBind("soundFontLoaded", eventHandlers.onSoundFontLoaded);
 		safeBind("playerReady", eventHandlers.onPlayerReady);

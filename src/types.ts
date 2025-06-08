@@ -11,6 +11,7 @@ export interface ITabManagerOptions {
 	onRenderFinished?: () => void;
 	onScoreLoaded?: (score: alphaTab.model.Score | null) => void;
 	onPlayerStateChanged?: (args: any) => void;
+	onPlayerPositionChanged?: (args: { currentTime: number; endTime: number; currentTick: number; endTick: number }) => void;
 	onFontLoaded?: (name: string, family: string) => void;
 	onSoundFontLoaded?: () => void;
 	onPlayerReady?: () => void;

@@ -6,6 +6,8 @@ import { ITabManager, ITabManagerOptions } from "../ITabManager";
 import * as ITabEventHandlers from "../ITabEventHandlers";
 import { TracksSidebar } from "../components/TracksSidebar";
 import { PlayerStateChangedEventArgs } from "../types"; // 从 types.ts 引入类型
+import { CursorScrollManager } from "../scrolling/CursorScrollManager";
+import { ScrollDebugger } from "../utils/scrollDebug";
 
 export const VIEW_TYPE_TAB = "tab-view";
 
@@ -40,6 +42,7 @@ export class TabView extends FileView {
 	private tabDisplay!: TabDisplay;
 	private pluginInstance: any; // 主插件实例
 	private fileModifyHandler: (file: TFile) => void; // 文件修改处理器
+	private cursorScrollManager: CursorScrollManager; // 光标滚动管理器
 
 	constructor(leaf: WorkspaceLeaf, plugin: any) {
 		super(leaf);
@@ -58,6 +61,15 @@ export class TabView extends FileView {
 			"itab"
 		]);
 
+		// 初始化光标滚动管理器
+		this.cursorScrollManager = new CursorScrollManager({
+			enabled: true,
+			smoothScroll: true,
+			offsetY: 50,
+			scrollSpeed: 300,
+			autoScrollOnPlay: true
+		});
+
 		// 添加视图操作按钮
 		this.addAction("music", "选择音轨", () => {
 			if (this.atManager) {
@@ -71,6 +83,12 @@ export class TabView extends FileView {
 
 		// 暂时注释掉 MIDI 下载按钮
 		// this.addAction("download", "下载 MIDI", this.downloadMidi.bind(this));
+
+		// 添加滚动调试按钮（开发用）
+		this.addAction("search", "滚动调试", () => {
+			ScrollDebugger.debugScrollSettings(this.atManager?.api, "[手动调试]");
+			ScrollDebugger.testManualScroll(this.atManager?.api);
+		});
 	}
 
 	getViewType(): string {
@@ -197,11 +215,29 @@ export class TabView extends FileView {
 					this.uiManager
 				);
 			},
+			onPlayerPositionChanged: (args) => {
+				ITabEventHandlers.handlePlayerPositionChanged(
+					args,
+					this.uiManager,
+					this.atManager.api
+				);
+				// 使用光标滚动管理器处理滚动
+				this.cursorScrollManager.handlePlayerPositionChanged(args);
+			},
 		};
 		this.atManager = new ITabManager(managerOptions);
 		this.atManager.setDarkMode(
 			document.body.className.includes("theme-dark")
 		);
+
+		// 设置光标滚动管理器的引用
+		this.cursorScrollManager.setUI(this.uiManager);
+		this.cursorScrollManager.setApi(this.atManager.api);
+
+		// 延迟执行滚动调试，确保API完全初始化
+		setTimeout(() => {
+			ScrollDebugger.debugScrollSettings(this.atManager.api, "[TabView]");
+		}, 1000);
 
 		// 3. 使用 ITabManager 加载乐谱
 		// 确保 pluginInstance.actualPluginDir 已被 main.ts 正确设置!

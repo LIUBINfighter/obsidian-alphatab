@@ -7,3 +7,4 @@ export { handleAlphaTabRenderStarted } from "./events/handleAlphaTabRenderStarte
 export { handleAlphaTabRenderFinished } from "./events/handleAlphaTabRenderFinished";
 export { handleAlphaTabScoreLoaded } from "./events/handleAlphaTabScoreLoaded";
 export { handlePlayerStateChanged } from "./events/handlePlayerStateChanged";
+export { handlePlayerPositionChanged } from "./events/handlePlayerPositionChanged";

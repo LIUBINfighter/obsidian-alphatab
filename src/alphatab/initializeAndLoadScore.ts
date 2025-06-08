@@ -208,8 +208,30 @@ export async function initializeAndLoadScore(manager: ITabManager, file: TFile) 
 	// Display settings
 	settings.display.scale = 0.8;
 	settings.display.layoutMode = alphaTab.LayoutMode.Page;
+	
+	// Player and cursor settings - 启用光标跟随功能
+	settings.player.enablePlayer = true; // 确保播放器启用
+	settings.player.enableCursor = true; // 启用播放光标
+	settings.player.enableAnimatedBeatCursor = true; // 启用动画节拍光标
+	
+	// 重要：找到正确的滚动容器
+	// 应该是包含滚动条的视口元素，而不是主渲染元素
+	const viewportElement = manager.getEventHandlers().viewportElement;
+	if (viewportElement) {
+		settings.player.scrollElement = viewportElement; // 设置滚动元素为视口容器
+		console.log("[ITabManager] 滚动元素设置为viewport:", viewportElement);
+	} else {
+		settings.player.scrollElement = mainElement; // 回退到主元素
+		console.log("[ITabManager] 滚动元素回退到main:", mainElement);
+	}
+	
+	settings.player.scrollMode = alphaTab.ScrollMode.Continuous; // 连续滚动模式
+	settings.player.scrollOffsetY = 50; // 垂直滚动偏移量
+	settings.player.scrollSpeed = 300; // 滚动速度（毫秒）
+	settings.player.nativeBrowserSmoothScroll = true; // 使用浏览器原生平滑滚动
+	
 	console.log(
-		"[ITabManager] Settings: Using default SMuFL font configuration"
+		"[ITabManager] Settings: Using default SMuFL font configuration with cursor following enabled"
 	);
 
 	const initialThemeColors = manager.getDarkMode(); /* ... theme colors ... */

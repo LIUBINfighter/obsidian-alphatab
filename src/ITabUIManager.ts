@@ -29,6 +29,7 @@ export class ITabUIManager {
 	public countInButton!: ToggleButton;
 	public savePdfButton!: ToggleButton;
 	public savePngButton!: ToggleButton;
+	public scrollFollowButton!: ToggleButton;
 	container?: HTMLElement; // 添加 container 属性声明
 
 	constructor(options: ITabUIManagerOptions) {
@@ -145,6 +146,13 @@ export class ITabUIManager {
 			text: "保存PNG"
 		});
 		this.atControlsRef.appendChild(this.savePngButton.getElement());
+		
+		// 光标跟随滚动按钮
+		this.scrollFollowButton = new ToggleButton({
+			text: "跟随光标",
+			active: true // 默认启用
+		});
+		this.atControlsRef.appendChild(this.scrollFollowButton.getElement());
 	}
 
 	showLoadingOverlay(message: string) {
@@ -189,6 +197,16 @@ export class ITabUIManager {
 	setCountInActive(active: boolean) {
 		if (this.countInButton) {
 			this.countInButton.setActive(active);
+		}
+	}
+	
+	isScrollFollowEnabled(): boolean {
+		return this.scrollFollowButton ? this.scrollFollowButton.isActive() : true;
+	}
+	
+	setScrollFollowEnabled(enabled: boolean) {
+		if (this.scrollFollowButton) {
+			this.scrollFollowButton.setActive(enabled);
 		}
 	}
 
