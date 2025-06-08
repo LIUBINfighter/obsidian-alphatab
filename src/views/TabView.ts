@@ -170,9 +170,7 @@ export class TabView extends FileView {
 				this.app.workspace.setActiveLeaf(this.leaf); // 修正: 使用正确的 API
 			},
 			onScoreLoaded: (score) => {
-				// score 可能为 null
 				if (score) {
-					// 更新轨道侧边栏的数据源
 					const allTracks = score.tracks || [];
 					this.tracksSidebar.setTracks(allTracks);
 					const initialRenderTracks =
@@ -181,22 +179,27 @@ export class TabView extends FileView {
 							: [];
 					this.tracksSidebar.setRenderTracks(initialRenderTracks);
 					
-					// 如果需要，可以在这里额外调用 handler
 					ITabEventHandlers.handleAlphaTabScoreLoaded(
 						score,
 						this.uiManager,
-						null, // 不再使用TracksModal
+						null,
 						this.atManager.api,
 						this.leaf
 					);
+
+					// 新增：在乐谱加载后，调用主题颜色应用方法
+					// 使用 setTimeout 确保在所有初始渲染逻辑后执行
+					setTimeout(() => {
+						this.atManager.applyThemeColorsToScore();
+					}, 0);
+
 				} else {
-					// 处理 score 为 null 的情况，例如显示错误
 					this.uiManager.showErrorInOverlay(
 						"错误：无法加载乐谱数据。"
 					);
 				}
-				this.app.workspace.setActiveLeaf(this.leaf); // 修正: 使用正确的 API
-				this.updateDisplayTitle(); // 使用我们之前定义的方法
+				this.app.workspace.setActiveLeaf(this.leaf);
+				this.updateDisplayTitle();
 			},
 			onRenderStarted: () => {
 				ITabEventHandlers.handleAlphaTabRenderStarted(

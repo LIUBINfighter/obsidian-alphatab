@@ -12,6 +12,7 @@ import { FontManager } from "./alphatab/FontManager";
 import { AlphaTabSettingsHelper } from "./alphatab/AlphaTabSettingsHelper";
 import { AlphaTabEventBinder } from "./alphatab/AlphaTabEventBinder";
 import { initializeAndLoadScore } from "./alphatab/initializeAndLoadScore";
+import { getObsidianThemeColors, applyThemeColorsToScore } from "./alphatab/ThemeAdapter";
 
 export class ITabManager {
 	private pluginInstance: any;
@@ -85,23 +86,39 @@ export class ITabManager {
 
 	setDarkMode(isDark: boolean) {
 		this.darkMode = isDark;
-		if (this.api && this.settings) {
-			const themeColors = isDark
-				? {
-						scoreColor: "rgba(236, 236, 236, 1)",
-						selectionColor: "rgba(80, 130, 180, 0.7)",
-						barSeparatorColor: "rgba(200, 200, 200, 0.7)",
-						staffLineColor: "rgba(200, 200, 200, 1)",
-                  }
-				: {
-						scoreColor: "rgba(0, 0, 0, 1)",
-						selectionColor: "rgba(0, 120, 255, 0.5)",
-						barSeparatorColor: "rgba(0, 0, 0, 0.2)",
-						staffLineColor: "rgba(0, 0, 0, 1)",
-                  };
-			Object.assign(this.settings.display.resources, themeColors);
-			this.api.settings = this.settings; // Re-apply settings
+		if (!this.api || !this.settings || !this.score) return;
+
+		// 获取 Obsidian 主题色
+		const theme = getObsidianThemeColors();
+		// 同步基础资源色到 AlphaTab settings
+		Object.assign(this.settings.display.resources, {
+			scoreColor: theme.textColor,
+			selectionColor: theme.textAccent,
+			barSeparatorColor: theme.barLineColor,
+			staffLineColor: theme.staffLineColor,
+		});
+		this.api.settings = this.settings;
+
+		// 应用到模型，随后重新渲染
+		applyThemeColorsToScore(this.score, theme);
+		this.api.render();
+	}
+
+	/**
+	 * 新增方法：读取 Obsidian 主题颜色并应用到当前乐谱
+	 */
+	public applyThemeColorsToScore(): void {
+		if (!this.api || !this.score) {
+			// 如果乐谱尚未加载，则不执行任何操作
+			return;
+		}
+		try {
+			const obsidianColors = getObsidianThemeColors();
+			applyThemeColorsToScore(this.score, obsidianColors);
+			// 应用颜色后必须重新渲染才能生效
 			this.api.render();
+		} catch (e) {
+			console.error("[ITabManager] Failed to apply theme colors:", e);
 		}
 	}
 
