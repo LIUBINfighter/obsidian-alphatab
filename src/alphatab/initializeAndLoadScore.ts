@@ -226,7 +226,7 @@ export async function initializeAndLoadScore(manager: ITabManager, file: TFile) 
 	}
 	
 	settings.player.scrollMode = alphaTab.ScrollMode.OffScreen; // 改为仅在光标离开屏幕时滚动
-	settings.player.scrollOffsetY = 20; // 减小垂直滚动偏移量
+	settings.player.scrollOffsetY = -25; // 负值在顶部预留空间，参考Vue版本
 	settings.player.scrollSpeed = 800; // 增加滚动时间，使动画更平滑
 	settings.player.nativeBrowserSmoothScroll = true; // 使用浏览器原生平滑滚动
 	

@@ -65,7 +65,7 @@ export class TabView extends FileView {
 		this.cursorScrollManager = new CursorScrollManager({
 			enabled: true,
 			smoothScroll: true,
-			offsetY: 0,  // 减小偏移量，使滚动更温和
+			offsetY: -25,  // 负值在顶部预留空间，与Vue版本保持一致
 			scrollSpeed: 500,  // 增加滚动时间，使动画更平滑
 			autoScrollOnPlay: true
 		});
