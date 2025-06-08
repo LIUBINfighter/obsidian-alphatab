@@ -52,8 +52,8 @@ onLoadFile	@	plugin:gp:53244
 // <-- Debug -->
 // ... (之前的日志和 AlphaTab Settings 配置) ...
 
-console.log("[AlphaTab Debug] Original typeof process:", typeof process);
-console.log("[AlphaTab Debug] Original typeof module:", typeof module);
+console.debug("[AlphaTab Debug] Original typeof process:", typeof process);
+console.debug("[AlphaTab Debug] Original typeof module:", typeof module);
 
 let originalProcess: any, originalModule: any; // any to avoid TS errors on reassigning global types
 let modifiedGlobals = false;
@@ -64,7 +64,7 @@ if (typeof process !== "undefined") {
 	// @ts-ignore
 	globalThis.process = undefined;
 	modifiedGlobals = true;
-	console.log("[AlphaTab Debug] Temporarily undefined globalThis.process");
+	console.debug("[AlphaTab Debug] Temporarily undefined globalThis.process");
 }
 // @ts-ignore
 if (typeof module !== "undefined") {
@@ -72,12 +72,12 @@ if (typeof module !== "undefined") {
 	// @ts-ignore
 	globalThis.module = undefined; // UMD 包装器经常检查这个
 	modifiedGlobals = true;
-	console.log("[AlphaTab Debug] Temporarily undefined globalThis.module");
+	console.debug("[AlphaTab Debug] Temporarily undefined globalThis.module");
 }
 
 try {
 	this.api = new alphaTab.AlphaTabApi(this.atMainRef, this.alphaTabSettings);
-	console.log(
+	console.debug(
 		"[AlphaTab Debug] AlphaTabApi instantiated successfully after modifying globals."
 	);
 } catch (e) {
@@ -95,12 +95,12 @@ try {
 		if (originalProcess !== undefined) {
 			// @ts-ignore
 			globalThis.process = originalProcess;
-			console.log("[AlphaTab Debug] Restored globalThis.process");
+			console.debug("[AlphaTab Debug] Restored globalThis.process");
 		}
 		if (originalModule !== undefined) {
 			// @ts-ignore
 			globalThis.module = originalModule;
-			console.log("[AlphaTab Debug] Restored globalThis.module");
+			console.debug("[AlphaTab Debug] Restored globalThis.module");
 		}
 	}
 }

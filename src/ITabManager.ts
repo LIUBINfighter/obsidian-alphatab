@@ -168,7 +168,7 @@ export class ITabManager {
 			this.api.destroy();
 			this.api = null;
 		}
-		console.log("[ITabManager] Destroyed.");
+		console.debug("[ITabManager] Destroyed.");
 	}
 
 	/**
@@ -232,7 +232,7 @@ export class ITabManager {
 			throw new Error("AlphaTab API 初始化失败");
 		}
 
-		console.log("[ITabManager] AlphaTab API 已为 TexEditor 初始化完成");
+		console.debug("[ITabManager] AlphaTab API 已为 TexEditor 初始化完成");
 	}
 
 	/**

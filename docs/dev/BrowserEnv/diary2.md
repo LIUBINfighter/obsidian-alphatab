@@ -55,7 +55,7 @@
     * `JSON.stringify` JSON序列化方法，配合replacer处理循环引用。
     * 错误处理 (`try...catch...finally` 异常捕获语法)
 * **Debugging Techniques**:
-    * `console.log` 日志输出, `console.error` 错误输出, `console.warn` 警告输出
+    * `console.debug` 日志输出, `console.error` 错误输出, `console.warn` 警告输出
     * 逐步简化配置以隔离问题(问题定位)。
     * 分析库源码（如 AlphaTab 的 `Environment.ts` 环境检测模块）。
     * 临时修改全局变量以绕过环境检测 (临时解决方案)。
@@ -121,9 +121,9 @@
         * **Detailed API Object Check (New)**:
             ```typescript
             // Right after this.api = new alphaTab.AlphaTabApi(...)
-            console.log("[AlphaTab 调试] AlphaTabApi 对象实例化后:", this.api);
+            console.debug("[AlphaTab 调试] AlphaTabApi 对象实例化后:", this.api);
             if (this.api) {
-                console.log("[AlphaTab 调试] this.api.error 类型:", typeof this.api.error);
+                console.debug("[AlphaTab 调试] this.api.error 类型:", typeof this.api.error);
                 if (this.api.error) { /* ... check typeof this.api.error.on ... */ }
                 else { console.error("[AlphaTab 调试] 严重错误: this.api.error 对象本身是未定义/空值!"); }
             } // ...

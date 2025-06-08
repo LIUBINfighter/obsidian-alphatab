@@ -204,14 +204,14 @@ render.md
                     	cssContent: string,
                     	targetDocument?: Document
                     ): HTMLStyleElement | null => {
-                    	console.log(
+                    	console.debug(
                     		"[ITabManager] Custom createStyleElement called. Preventing default style creation."
                     	);
                     	// Option 1: Return null or an empty, non-functional element
                     	// return null;
 
                     	// Option 2 (if you want to log but still prevent):
-                    	// console.log('[ITabManager] CSS content alphaTab tried to inject:', cssContent);
+                    	// console.debug('[ITabManager] CSS content alphaTab tried to inject:', cssContent);
                     	// return null; // Or an empty style element that won't affect anything.
 
                     	// Or, if you want to try to use the provided cssContent but ensure it's correctly handled by Obsidian:

@@ -105,7 +105,7 @@ manager.playPause();
 ```typescript
 AlphaTabEventBinder.bind(api, {
   onScoreLoaded: (score) => {
-    console.log("乐谱加载完成:", score.title);
+    console.debug("乐谱加载完成:", score.title);
   },
   onError: (error) => {
     console.error("AlphaTab错误:", error.message);
@@ -160,7 +160,7 @@ const managerOptions = {
   app: app,
   mainElement: containerEl,
   onScoreLoaded: (score) => {
-    console.log("乐谱加载完成:", score.title);
+    console.debug("乐谱加载完成:", score.title);
   },
   onError: (error) => {
     console.error("发生错误:", error.message);

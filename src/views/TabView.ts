@@ -52,7 +52,7 @@ export class TabView extends FileView {
 		this.fileModifyHandler = (file: TFile) => {
 			// 检查修改的文件是否是当前打开的文件
 			if (this.currentFile && file && file.path === this.currentFile.path) {
-				console.log(`[TabView] 检测到文件变化: ${file.basename}，正在重新加载...`);
+				console.debug(`[TabView] 检测到文件变化: ${file.basename}，正在重新加载...`);
 				this.reloadFile();
 			}
 		};
@@ -270,8 +270,8 @@ export class TabView extends FileView {
 				// 使用内容直接渲染
 				this.uiManager.showLoadingOverlay("正在解析 AlphaTex 内容...");
 				await this.atManager.initializeAndLoadFromTex(fileContent);
-				// 使用console.log替代showNotification
-				console.log(`AlphaTex 文件 "${file.basename}" 已加载`);
+				// 使用console.debug替代showNotification
+				console.debug(`AlphaTex 文件 "${file.basename}" 已加载`);
 			} catch (error) {
 				console.error("[TabView] 加载 AlphaTex 文件失败", error);
 				this.showError(`解析 AlphaTex 内容失败: ${error.message || "未知错误"}`);
@@ -285,13 +285,13 @@ export class TabView extends FileView {
 	// 注册文件变更监听
 	private registerFileWatcher() {
 		this.app.vault.on("modify", this.fileModifyHandler);
-		console.log("[TabView] 已注册文件监听");
+		console.debug("[TabView] 已注册文件监听");
 	}
 
 	// 注销文件变更监听
 	private unregisterFileWatcher() {
 		this.app.vault.off("modify", this.fileModifyHandler);
-		console.log("[TabView] 已注销文件监听");
+		console.debug("[TabView] 已注销文件监听");
 	}
 
 	// 重新加载当前文件内容
@@ -321,7 +321,7 @@ export class TabView extends FileView {
 				
 				// 重新渲染内容
 				await this.atManager.initializeAndLoadFromTex(fileContent);
-				console.log(`[TabView] 已重新加载文件: ${this.currentFile.basename}`);
+				console.debug(`[TabView] 已重新加载文件: ${this.currentFile.basename}`);
 			} catch (error) {
 				console.error("[TabView] 重新加载文件失败", error);
 				this.uiManager.showErrorInOverlay(
@@ -363,8 +363,8 @@ export class TabView extends FileView {
 	
 	// 添加用于通知的方法（非错误类信息）
 	private showNotification(message: string, timeout = 2000) {
-		// 已停用UI通知，改为使用console.log
-		console.log(`[TabView Debug] ${message}`);
+		// 已停用UI通知，改为使用console.debug
+		console.debug(`[TabView Debug] ${message}`);
 	}
 	
 	// 处理从轨道侧边栏的选择变更
@@ -390,9 +390,9 @@ export class TabView extends FileView {
 		this.atManager.updateRenderTracks(selectedTracks);
 		
 		if (selectedTracks.length === 1) {
-			console.log(`正在渲染轨道：${selectedTracks[0].name}`);
+			console.debug(`正在渲染轨道：${selectedTracks[0].name}`);
 		} else {
-			console.log(`正在渲染 ${selectedTracks.length} 条音轨。`);
+			console.debug(`正在渲染 ${selectedTracks.length} 条音轨。`);
 		}
 	}
 
@@ -450,7 +450,7 @@ export class TabView extends FileView {
 		// 注销文件监听
 		this.unregisterFileWatcher();
 		
-		console.log(`[TabView] Unloading file: ${file.name}`);
+		console.debug(`[TabView] Unloading file: ${file.name}`);
 		if (this.atManager) {
 			this.atManager.destroy();
 			// @ts-ignore
@@ -472,7 +472,7 @@ export class TabView extends FileView {
 		this.unregisterFileWatcher();
 		
 		// 当视图本身被关闭和销毁时
-		console.log("[TabView] Final onunload triggered.");
+		console.debug("[TabView] Final onunload triggered.");
 		if (this.atManager) {
 			this.atManager.destroy();
 			// @ts-ignore

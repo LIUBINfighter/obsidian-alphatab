@@ -52,7 +52,7 @@ export default class AlphaTabPlugin extends Plugin {
 		}
 
 		this.actualPluginDir = actualPluginDir;
-		// console.log(`[AlphaTab Debug] Using plugin directory: ${actualPluginDir}`);
+		// console.debug(`[AlphaTab Debug] Using plugin directory: ${actualPluginDir}`);
 
 		// 加载自定义样式
 		registerStyles(this);
@@ -188,14 +188,14 @@ export default class AlphaTabPlugin extends Plugin {
 			})
 		);
 
-		// console.log("AlphaTab Plugin Loaded");
+		// console.debug("AlphaTab Plugin Loaded");
 	}
 
 	onunload() {
 		// 清理工作
 		this.app.workspace.detachLeavesOfType(VIEW_TYPE_TAB);
 		this.app.workspace.detachLeavesOfType(VIEW_TYPE_TEX_EDITOR);
-		console.log("AlphaTab Plugin Unloaded");
+		console.debug("AlphaTab Plugin Unloaded");
 	}
 
 	async loadSettings() {

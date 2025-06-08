@@ -82,7 +82,7 @@ export async function initializeAndLoadScore(manager: ITabManager, file: TFile) 
 	const soundFontAssetObsidianPath = pluginManifestDir + soundFontFileSuffix;
 	if (await app.vault.adapter.exists(soundFontAssetObsidianPath)) {
 		settings.player.soundFont = app.vault.adapter.getResourcePath(soundFontAssetObsidianPath);
-		console.log(`[ITabManager] Settings: player.soundFont = ${settings.player.soundFont}`);
+		console.debug(`[ITabManager] Settings: player.soundFont = ${settings.player.soundFont}`);
 	} else {
 		settings.player.soundFont = null;
 		settings.player.enablePlayer = false; // 找不到则禁用
@@ -91,14 +91,14 @@ export async function initializeAndLoadScore(manager: ITabManager, file: TFile) 
 	}
 	// === Player/SoundFont 支持 end ===
 
-	console.log(
+	console.debug(
 		"[ITabManager] Manual @font-face + Data URL Mode: Workers/Player disabled."
 	);
 
 	if (!pluginManifestDir) {
 		return;
 	}
-	console.log(
+	console.debug(
 		`[ITabManager] Plugin manifest dir: ${pluginManifestDir}`
 	);
 
@@ -111,7 +111,7 @@ export async function initializeAndLoadScore(manager: ITabManager, file: TFile) 
 			app.vault.adapter.getResourcePath(
 				mainScriptAssetObsidianPath
 			);
-		console.log(
+		console.debug(
 			`[ITabManager] Settings: core.scriptFile = ${settings.core.scriptFile}`
 		);
 	} else {
@@ -131,7 +131,7 @@ export async function initializeAndLoadScore(manager: ITabManager, file: TFile) 
 	} else {
 		settings.core.fontDirectory = "/alphatab-virtual-fonts/"; // A plausible relative path
 	}
-	console.log(
+	console.debug(
 		`[ITabManager] Settings: core.fontDirectory (for satisfying internal checks) = ${settings.core.fontDirectory}`
 	);
 
@@ -159,7 +159,7 @@ export async function initializeAndLoadScore(manager: ITabManager, file: TFile) 
 				smuflFontData[fontInfo.ext] = dataUrl; // For AlphaTab settings
 				fontDataUrlsForCss[fontInfo.ext] = dataUrl; // For manual CSS injection
 				actualSmuflFontFilesLoaded = true;
-				console.log(
+				console.debug(
 					`[ITabManager] Encoded ${fontInfo.name} as Data URL.`
 				);
 			}
@@ -176,7 +176,7 @@ export async function initializeAndLoadScore(manager: ITabManager, file: TFile) 
 			);
 			try {
 				smuflFontData["json"] = JSON.parse(metadataStr);
-				console.log(
+				console.debug(
 					`[ITabManager] Parsed ${metadataFile} and added to smuflFontData.json.`
 				);
 			} catch (jsonError) {
@@ -187,7 +187,7 @@ export async function initializeAndLoadScore(manager: ITabManager, file: TFile) 
 		if (actualSmuflFontFilesLoaded) {
 			// @ts-ignore
 			settings.core.smuflFontSources = smuflFontData; // Provide to AlphaTab
-			console.log(
+			console.debug(
 				"[ITabManager] Settings: core.smuflFontSources populated. Keys:",
 				Object.keys(smuflFontData)
 			);
@@ -219,10 +219,10 @@ export async function initializeAndLoadScore(manager: ITabManager, file: TFile) 
 	const viewportElement = manager.getEventHandlers().viewportElement;
 	if (viewportElement) {
 		settings.player.scrollElement = viewportElement; // 设置滚动元素为视口容器
-		console.log("[ITabManager] 滚动元素设置为viewport:", viewportElement);
+		console.debug("[ITabManager] 滚动元素设置为viewport:", viewportElement);
 	} else {
 		settings.player.scrollElement = mainElement; // 回退到主元素
-		console.log("[ITabManager] 滚动元素回退到main:", mainElement);
+		console.debug("[ITabManager] 滚动元素回退到main:", mainElement);
 	}
 	
 	settings.player.scrollMode = alphaTab.ScrollMode.OffScreen; // 改为仅在光标离开屏幕时滚动
@@ -230,13 +230,13 @@ export async function initializeAndLoadScore(manager: ITabManager, file: TFile) 
 	settings.player.scrollSpeed = 800; // 增加滚动时间，使动画更平滑
 	settings.player.nativeBrowserSmoothScroll = true; // 使用浏览器原生平滑滚动
 	
-	console.log(
+	console.debug(
 		"[ITabManager] Settings: Using default SMuFL font configuration with cursor following enabled"
 	);
 
 	const initialThemeColors = manager.getDarkMode(); /* ... theme colors ... */
 	Object.assign(settings.display.resources, initialThemeColors);
-	console.log(
+	console.debug(
 		"[ITabManager] Final AlphaTab Settings:",
 		JSON.parse(JSON.stringify(settings))
 	);
@@ -256,19 +256,19 @@ export async function initializeAndLoadScore(manager: ITabManager, file: TFile) 
 		if (alphaTab.Environment && typeof alphaTab.WebPlatform !== "undefined") {
 			// @ts-ignore
 			alphaTab.Environment.webPlatform = alphaTab.WebPlatform.Browser;
-			console.log(
+			console.debug(
 				"[ITabManager] Environment.webPlatform overridden."
 			);
 		}
 
-		console.log("[ITabManager] Initializing AlphaTabApi...");
+		console.debug("[ITabManager] Initializing AlphaTabApi...");
 
 		// 初始化 AlphaTabApi
 		manager.api = new alphaTab.AlphaTabApi(
 			mainElement,
 			settings
 		);
-		console.log(
+		console.debug(
 			"[ITabManager] AlphaTabApi instantiated. API object:",
 			manager.api
 		);
@@ -285,7 +285,7 @@ export async function initializeAndLoadScore(manager: ITabManager, file: TFile) 
 				"playerReady",
 				"ready",
 			];
-			console.log("[ITabManager] Checking API event emitters:");
+			console.debug("[ITabManager] Checking API event emitters:");
 			eventNames.forEach((eventName) => {
 				/* ... event emitter check ... */
 			});
